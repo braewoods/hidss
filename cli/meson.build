@@ -21,7 +21,9 @@
 hidss = 'hidss'
 
 hidss_sources = [
-    'hidss.c',
+    'main.c',
+    'common.c',
+    'device.c',
 ]
 
 hidss_includes = [
@@ -31,11 +33,11 @@ hidss_includes = [
 hidss_dependencies = []
 
 if target_machine.system() == 'linux'
-    hidss_dependencies += dependency('hidapi-hidraw')
-elif target_machine.system() == 'darwin'
-    hidss_dependencies += dependency('hidapi-darwin')
-else
-    hidss_dependencies += dependency('hidapi-libusb')
+    hidss_sources += [
+        'posix.c',
+        'linux.c',
+    ]
+    hidss_dependencies += dependency('libudev')
 endif
 
 executable(
