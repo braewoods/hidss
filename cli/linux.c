@@ -178,7 +178,7 @@ static struct device_info *sysfs_create_device_info(struct udev_device *hidraw) 
 
     str = udev_device_get_sysname(hidraw);
     if (str != NULL)
-        strbuild(di->device, sizeof(di->device), str);
+        strbuild(di->devpath, sizeof(di->devpath), str);
 
     str = udev_device_get_sysname(usb);
     if (str != NULL)
@@ -319,13 +319,16 @@ struct device_info *device_enumerate(void) {
         }
 
         di = sysfs_create_device_info(hidraw);
-        if (di != NULL) {
-            if (root == NULL) {
-                root = end = di;
-            } else {
-                end->next = di;
-                end = di;
-            }
+        if (di == NULL) {
+            udev_device_unref(hidraw);
+            continue;
+        }
+
+        if (root == NULL) {
+            root = end = di;
+        } else {
+            end->next = di;
+            end = di;
         }
 
         udev_device_unref(hidraw);
@@ -430,16 +433,16 @@ bool device_reopen(struct device *dev, time_t delay) {
     return true;
 }
 
-bool device_write(struct device *dev, const uint8_t buf[static WRITE_REPORT_SIZE]) {
+bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
     ssize_t n;
 
-    n = write(dev->fd, buf, WRITE_REPORT_SIZE);
+    n = write(dev->fd, buf, REPORT_BUFFER_SIZE);
     if (n == -1) {
         output("%s: %s: %s", "write", strerror(errno), dev->name);
         return false;
     }
 
-    if (n != WRITE_REPORT_SIZE) {
+    if (n != REPORT_BUFFER_SIZE) {
         output("%s: %s: %s", "write", "short packet", dev->name);
         return false;
     }
@@ -447,7 +450,7 @@ bool device_write(struct device *dev, const uint8_t buf[static WRITE_REPORT_SIZE
     return true;
 }
 
-bool device_read(struct device *dev, uint8_t buf[static READ_REPORT_SIZE], int to) {
+bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
     int res;
     struct pollfd fds;
     ssize_t n;
@@ -465,13 +468,15 @@ bool device_read(struct device *dev, uint8_t buf[static READ_REPORT_SIZE], int t
         return false;
     }
 
-    n = read(dev->fd, buf, READ_REPORT_SIZE);
+    *buf = REPORT_ID;
+
+    n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
     if (n == -1) {
         output("%s: %s: %s", "read", strerror(errno), dev->name);
         return false;
     }
 
-    if (n != READ_REPORT_SIZE) {
+    if (n != REPORT_BUFFER_SIZE - 1) {
         output("%s: %s: %s", "read", "short packet", dev->name);
         return false;
     }

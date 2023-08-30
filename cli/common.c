@@ -235,7 +235,7 @@ err_0:
 static int upload_firmware(struct device *dev, const char *path) {
     uint8_t *data;
     size_t size;
-    uint8_t buf[READ_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
 
     if (!file_get_contents(path, &data, &size, HIDSS_FIRWMARE_MIN_SIZE, HIDSS_FIRMWARE_MAX_SIZE))
         goto err_0;
@@ -398,13 +398,13 @@ int mode_enumerate(void) {
     for (struct device_info *di = dis; di != NULL; di = di->next)
         fprintf(
             stdout,
-            "Device\t%s\n"
+            "DevPath\t%s\n"
             "BusPath\t%s\n"
             "Vendor\t%s\n"
             "Product\t%s\n"
             "Serial\t%s\n"
             "\n",
-            di->device,
+            di->devpath,
             di->buspath,
             di->vendor,
             di->product,
@@ -472,7 +472,7 @@ int mode_upload(struct device *dev, const char *upload_path) {
 }
 
 int mode_model(struct device *dev) {
-    uint8_t buf[READ_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
 
     if (!device_enter_boot_mode(dev, buf))
         return EXIT_FAILURE;
@@ -483,7 +483,7 @@ int mode_model(struct device *dev) {
     if (!device_send_metadata(dev, "", 0))
         return EXIT_FAILURE;
 
-    fprintf(stdout, "%s\n", buf);
+    fprintf(stdout, "%s\n", buf + 1);
 
     return EXIT_SUCCESS;
 }

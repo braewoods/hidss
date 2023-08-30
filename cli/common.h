@@ -37,7 +37,7 @@
 #include <errno.h>
 #include "hidss.h"
 
-#define alloc(T,N) ((T*)malloc(sizeof(T)*(N)))
+#define alloc(T,N) ((T*)malloc(sizeof(T[N])))
 #define strbuild(A,B,...) strbuild_real(A,B,(const char *[]){__VA_ARGS__,NULL})
 
 #define REPORT_DESCRIPTOR (const uint8_t []) {      \
@@ -64,8 +64,7 @@ enum {
     PRODUCT_ID = 0x0065,
     REPORT_ID = 0,
     REPORT_SIZE = 64,
-    WRITE_REPORT_SIZE = REPORT_SIZE + 1,
-    READ_REPORT_SIZE = REPORT_SIZE,
+    REPORT_BUFFER_SIZE = REPORT_SIZE + 1,
     COMMAND_MAX_ARGS = 64,
     YMODEM_128_BLOCK_SIZE = ((128 / REPORT_SIZE) + 1) * REPORT_SIZE,
     YMODEM_1024_BLOCK_SIZE = ((1024 / REPORT_SIZE) + 1) * REPORT_SIZE,
@@ -81,7 +80,7 @@ struct main_state {
 
 struct device_info {
     struct device_info *next;
-    char device[16];
+    char devpath[16];
     char buspath[64];
     char vendor[512];
     char product[512];
@@ -153,7 +152,7 @@ bool device_send_metadata(struct device *, const char *, size_t);
 bool device_send_data(struct device *, const uint8_t **, size_t *, uint8_t *);
 bool device_send_data_stream(struct device *, const uint8_t *, size_t);
 bool device_enter_ymodem_mode(struct device *);
-bool device_enter_boot_mode(struct device *, uint8_t [static READ_REPORT_SIZE]);
+bool device_enter_boot_mode(struct device *, uint8_t [static REPORT_BUFFER_SIZE]);
 
 bool platform_init(void);
 void platform_fini(void);
@@ -163,7 +162,7 @@ struct device_info *device_enumerate(void);
 struct device *device_open(const char *);
 void device_close(struct device *);
 bool device_reopen(struct device *, time_t);
-bool device_write(struct device *, const uint8_t [static WRITE_REPORT_SIZE]);
-bool device_read(struct device *, uint8_t [static READ_REPORT_SIZE], int);
+bool device_write(struct device *, const uint8_t [static REPORT_BUFFER_SIZE]);
+bool device_read(struct device *, uint8_t [static REPORT_BUFFER_SIZE], int);
 
 #endif

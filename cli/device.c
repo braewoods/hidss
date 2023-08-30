@@ -20,8 +20,8 @@
 
 #include "common.h"
 
-static bool ymodem_validate_response(const uint8_t buf[static READ_REPORT_SIZE], uint8_t byte) {
-    if (buf[0] != 0x06 || buf[1] != byte) {
+static bool ymodem_validate_response(const uint8_t buf[static REPORT_BUFFER_SIZE], uint8_t byte) {
+    if (buf[1] != 0x06 || buf[2] != byte) {
         output("%s: %s", __func__, "unexpected response");
         return false;
     }
@@ -86,7 +86,7 @@ bool device_first(char device[static PATH_MAX]) {
         return false;
     }
 
-    strbuild(device, PATH_MAX, dis->device);
+    strbuild(device, PATH_MAX, dis->devpath);
 
     device_enumerate_free(dis);
 
@@ -112,7 +112,7 @@ bool device_send_widget(struct device *dev, const uint8_t *keys, const uint16_t 
     // u8: key, u16be: value (field layout, may be repeated)
     // key is widget id from current theme
     // rest is null padding
-    uint8_t buf[WRITE_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
     uint8_t *pos;
     uint8_t *end;
 
@@ -139,7 +139,7 @@ bool device_send_command(struct device *dev, const char *cmd, bool add_header) {
     // u8: 0x01 (report id) (optional in some cases)
     // u8: variable length string (command)
     // rest is null padding
-    uint8_t buf[WRITE_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
     uint8_t *pos;
     uint8_t *end;
 
@@ -188,7 +188,7 @@ bool device_send_sensor(struct device *dev, const uint8_t *keys, const uint16_t 
     // 19: network download (kilobytes per second)
     // 20: sound volume (percentage)
     // rest is null padding
-    uint8_t buf[WRITE_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
     uint8_t *pos;
     uint8_t *end;
 
@@ -224,7 +224,7 @@ bool device_send_datetime(struct device *dev, uint8_t timeout, uint8_t brightnes
     // u8: backlight timeout (0 to 255, 1/8th of a second, less than a second disables it)
     // u8: backlight brightness (1 to 100)
     // rest is null padding
-    uint8_t buf[WRITE_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
     uint8_t *pos;
     uint8_t *end;
     struct tm tm;
@@ -268,7 +268,7 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
     uint8_t *pos;
     uint8_t *data_end;
     uint8_t *block_end;
-    uint8_t buf[READ_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
 
     pos = block;
     data_end = block + 3 + 128;
@@ -295,10 +295,10 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
     memset(pos, 0x00, block_end - pos);
 
     for (pos = block; pos < block_end; pos += REPORT_SIZE) {
-        uint8_t buf[WRITE_REPORT_SIZE];
+        uint8_t buf[REPORT_BUFFER_SIZE];
 
         *buf = REPORT_ID;
-        memcpy(buf + 1, pos, REPORT_SIZE);
+        memcpy(buf + 1, pos, REPORT_BUFFER_SIZE - 1);
 
         if (!device_write(dev, buf))
             return false;
@@ -322,7 +322,7 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
     uint8_t *pos;
     uint8_t *data_end;
     uint8_t *block_end;
-    uint8_t buf[READ_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
 
     pos = block;
     data_end = block + 3 + 1024;
@@ -353,10 +353,10 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
     memset(pos, 0x00, block_end - pos);
 
     for (pos = block; pos < block_end; pos += REPORT_SIZE) {
-        uint8_t buf[WRITE_REPORT_SIZE];
+        uint8_t buf[REPORT_BUFFER_SIZE];
 
         *buf = REPORT_ID;
-        memcpy(buf + 1, pos, REPORT_SIZE);
+        memcpy(buf + 1, pos, REPORT_BUFFER_SIZE - 1);
 
         if (!device_write(dev, buf))
             return false;
@@ -371,7 +371,7 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
 bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t size) {
     uint8_t frame;
     size_t total;
-    uint8_t buf[WRITE_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
     uint8_t *pos;
     uint8_t *end;
 
@@ -413,7 +413,7 @@ bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t siz
 }
 
 bool device_enter_ymodem_mode(struct device *dev) {
-    uint8_t buf[READ_REPORT_SIZE];
+    uint8_t buf[REPORT_BUFFER_SIZE];
 
     if (!device_send_command(dev, "reset", true))
         return false;
@@ -427,7 +427,7 @@ bool device_enter_ymodem_mode(struct device *dev) {
     return ymodem_validate_response(buf, 0x43);
 }
 
-bool device_enter_boot_mode(struct device *dev, uint8_t buf[static READ_REPORT_SIZE]) {
+bool device_enter_boot_mode(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE]) {
     if (!device_send_command(dev, "model", true))
         return false;
 
