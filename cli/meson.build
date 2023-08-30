@@ -38,6 +38,14 @@ if target_machine.system() == 'linux'
         'linux.c',
     ]
     hidss_dependencies += dependency('libudev')
+elif target_machine.system() == 'windows'
+    hidss_sources += [
+        'windows.c',
+    ]
+    hidss_dependencies += [
+        cc.find_library('hid', static: true),
+        cc.find_library('cfgmgr32', static: true),
+    ]
 endif
 
 executable(

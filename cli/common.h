@@ -21,6 +21,16 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#if defined(__MINGW32__)
+#define WINVER _WIN32_WINNT_WIN7
+#endif
+
+#if defined(__MINGW32__)
+#define FORMAT_PRINTF_TYPE gnu_printf
+#else
+#define FORMAT_PRINTF_TYPE printf
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -38,6 +48,7 @@
 #include "hidss.h"
 
 #define alloc(T,N) ((T*)malloc(sizeof(T[N])))
+#define redim(P,T,N) ((T*)realloc(P,sizeof(T[N])))
 #define strbuild(A,B,...) strbuild_real(A,B,(const char *[]){__VA_ARGS__,NULL})
 
 #define REPORT_DESCRIPTOR (const uint8_t []) {      \
@@ -62,6 +73,8 @@ enum {
 enum {
     VENDOR_ID = 0x0483,
     PRODUCT_ID = 0x0065,
+    USAGE_PAGE_ID = 0xff00,
+    USAGE_ID = 0x0001,
     REPORT_ID = 0,
     REPORT_SIZE = 64,
     REPORT_BUFFER_SIZE = REPORT_SIZE + 1,
@@ -80,11 +93,11 @@ struct main_state {
 
 struct device_info {
     struct device_info *next;
-    char devpath[16];
-    char buspath[64];
-    char vendor[512];
-    char product[512];
-    char serial[512];
+    char devpath[256];
+    char buspath[256];
+    char vendor[256];
+    char product[256];
+    char serial[256];
 };
 
 struct device;
@@ -133,7 +146,7 @@ static inline size_t xdigspn(const char *s) {
 
 void setprogname(const char *);
 const char *getprogname(void);
-void output(const char *, ...) __attribute__((format(printf, 1, 2)));
+void output(const char *, ...) __attribute__((format(FORMAT_PRINTF_TYPE, 1, 2)));
 bool strbuild_real(char * restrict, size_t, char const * restrict * restrict);
 bool getdatetime(struct tm *);
 bool file_get_contents(const char *, uint8_t **, size_t *, long, long);

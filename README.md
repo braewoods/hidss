@@ -20,6 +20,7 @@ generator or editor.
 
 Supported Platforms:
  - Linux
+ - Windows
 
 Useful Links:
  - [Product Listing](https://aliexpress.com/item/1005005632018367.html)

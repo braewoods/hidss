@@ -30,6 +30,8 @@ project(
     ],
 )
 
+cc = meson.get_compiler('c')
+
 includes = include_directories('include')
 
 subdir('include')
