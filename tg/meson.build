@@ -18,46 +18,30 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-project(
-    'hidss',
-    'c',
-    version: '0.1',
-    license: 'MIT',
-    subproject_dir: 'dep',
-    default_options: [
-        'warning_level=3',
-        'c_std=gnu11',
-        'buildtype=debugoptimized',
-    ],
+tg = 'hidss-tg'
+
+tg_srcs = [
+    'main.c',
+    'common.c',
+    'section.c',
+    'image.c',
+    'output.c',
+]
+
+tg_incs = [
+    inc,
+]
+
+tg_deps = [
+    inih_dep,
+    dependency('gdlib'),
+]
+
+executable(
+    tg,
+    sources: tg_srcs,
+    include_directories: tg_incs,
+    dependencies: tg_deps,
+    install: true,
+    install_mode: ['rwxr-xr-x', 0, 0],
 )
-
-cc = meson.get_compiler('c')
-inc = include_directories('inc')
-sys = target_machine.system()
-win = import('windows')
-
-inih_proj = subproject(
-    'inih',
-    default_options: [
-        'distro_install=false',
-        'with_INIReader=false',
-        'multi-line_entries=false',
-        'utf-8_bom=false',
-        'inline_comments=false',
-        'inline_comment_prefix=;',
-        'start-of-line_comment_prefix=;#',
-        'allow_no_value=false',
-        'stop_on_first_error=true',
-        'report_line_numbers=true',
-        'call_handler_on_new_section=true',
-        'use_heap=false',
-        'max_line_length=4096',
-        'initial_malloc_size=4096',
-        'allow_realloc=false',
-    ],
-)
-inih_dep = inih_proj.get_variable('inih_dep')
-
-subdir('inc')
-subdir('ctl')
-subdir('tg')
