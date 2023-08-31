@@ -33,9 +33,9 @@ static bool sysfs_check_device_info(const char *path) {
     int fd;
     char data[4096];
     ssize_t n;
-    char *pos;
+    char *pos = data;
     char *line;
-    char *id;
+    char *id = NULL;
     char *bustype;
     char *vendor;
     char *product;
@@ -64,15 +64,11 @@ static bool sysfs_check_device_info(const char *path) {
     }
 
     data[n] = '\0';
-    pos = data;
-    id = NULL;
 
     while ((line = strsep(&pos, "\n")) != NULL) {
-        char *pos2;
+        char *pos2 = line;
         char *key;
         char *val;
-
-        pos2 = line;
 
         key = strsep(&pos2, "=");
         if (key == NULL)
@@ -200,11 +196,9 @@ static struct device_info *sysfs_create_device_info(struct udev_device *hidraw) 
 }
 
 static bool hidraw_check_device_info(int fd, const char *name) {
-    int res;
     struct hidraw_devinfo di;
 
-    res = ioctl(fd, HIDIOCGRAWINFO, &di);
-    if (res == -1) {
+    if (ioctl(fd, HIDIOCGRAWINFO, &di) == -1) {
         output("%s: %s: %s", "ioctl (HIDIOCGRAWINFO)", strerror(errno), name);
         return false;
     }
@@ -228,12 +222,10 @@ static bool hidraw_check_device_info(int fd, const char *name) {
 }
 
 static bool hidraw_check_report_descriptor(int fd, const char *name) {
-    int res;
     int size;
     struct hidraw_report_descriptor rd;
 
-    res = ioctl(fd, HIDIOCGRDESCSIZE, &size);
-    if (res == -1) {
+    if (ioctl(fd, HIDIOCGRDESCSIZE, &size) == -1) {
         output("%s: %s: %s", "ioctl (HIDIOCGRDESCSIZE)", strerror(errno), name);
         return false;
     }
@@ -245,8 +237,7 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
 
     rd.size = size;
 
-    res = ioctl(fd, HIDIOCGRDESC, &rd);
-    if (res == 1) {
+    if (ioctl(fd, HIDIOCGRDESC, &rd) == 1) {
         output("%s: %s: %s", "ioctl (HIDIOCGRDESC)", strerror(errno), name);
         return false;
     }
@@ -260,7 +251,6 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
 }
 
 struct device_info *device_enumerate(void) {
-    int res;
     struct udev *udev;
     struct udev_enumerate *enumerator;
     struct udev_list_entry *device_paths;
@@ -280,14 +270,12 @@ struct device_info *device_enumerate(void) {
         goto err_1;
     }
 
-    res = udev_enumerate_add_match_subsystem(enumerator, "hidraw");
-    if (res < 0) {
+    if (udev_enumerate_add_match_subsystem(enumerator, "hidraw") < 0) {
         output("%s: %s", "udev_enumerate_add_match_subsystem", "unknown failure");
         goto err_2;
     }
 
-    res = udev_enumerate_scan_devices(enumerator);
-    if (res < 0) {
+    if (udev_enumerate_scan_devices(enumerator) < 0) {
         output("%s: %s", "udev_enumerate_scan_devices", "unknown failure");
         goto err_2;
     }
@@ -349,7 +337,6 @@ err_0:
 }
 
 struct device *device_open(const char *name) {
-    int res;
     char path[PATH_MAX];
     int fd;
     struct device *dev;
@@ -373,8 +360,7 @@ struct device *device_open(const char *name) {
     if (!hidraw_check_report_descriptor(fd, name))
         goto err_1;
 
-    res = flock(fd, LOCK_EX | LOCK_NB);
-    if (res == -1) {
+    if (flock(fd, LOCK_EX | LOCK_NB) == -1) {
         output("%s: %s: %s", "flock", strerror(errno), name);
         goto err_1;
     }

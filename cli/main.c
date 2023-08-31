@@ -21,23 +21,14 @@
 #include "common.h"
 
 static bool parse_args(int argc, char **argv, struct main_state *ms) {
-    int mode_set_count;
-    bool device_path_set;
+    int mode_set_count = 0;
+    bool device_path_set = false;
     int opt;
 
     setprogname(argv[0]);
 
-    ms->mode = MODE_UNSPECIFIED;
-    *ms->upload_path = '\0';
-    *ms->device_path = '\0';
-    ms->exit_code = EXIT_FAILURE;
-    ms->device = NULL;
-
     if (!platform_init())
         return false;
-
-    mode_set_count = 0;
-    device_path_set = false;
 
     while ((opt = getopt(argc, argv, ":ecu:md:h")) != -1) {
         switch (opt) {
@@ -127,7 +118,13 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
 }
 
 int main(int argc, char **argv) {
-    struct main_state ms;
+    struct main_state ms = {
+        .mode = MODE_UNSPECIFIED,
+        .upload_path = "",
+        .device_path = "",
+        .exit_code = EXIT_FAILURE,
+        .device = NULL,
+    };
 
     if (!parse_args(argc, argv, &ms))
         goto end;
@@ -170,8 +167,6 @@ int main(int argc, char **argv) {
 
 end:
     device_close(ms.device);
-
     platform_fini();
-
     return ms.exit_code;
 }

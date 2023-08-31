@@ -31,9 +31,7 @@ struct device {
 };
 
 static inline bool utf16_to_utf8(const wchar_t *wcs, char *cs, size_t len) {
-    int res;
-
-    res = WideCharToMultiByte(
+    int res = WideCharToMultiByte(
         CP_UTF8,
         WC_ERR_INVALID_CHARS | WC_NO_BEST_FIT_CHARS,
         wcs,
@@ -43,14 +41,11 @@ static inline bool utf16_to_utf8(const wchar_t *wcs, char *cs, size_t len) {
         NULL,
         NULL
     );
-
     return (res != 0);
 }
 
 static inline bool utf8_to_utf16(const char *cs, wchar_t *wcs, size_t len) {
-    int res;
-
-    res = MultiByteToWideChar(
+    int res = MultiByteToWideChar(
         CP_UTF8,
         MB_ERR_INVALID_CHARS,
         cs,
@@ -58,7 +53,6 @@ static inline bool utf8_to_utf16(const char *cs, wchar_t *wcs, size_t len) {
         wcs,
         len
     );
-
     return (res != 0);
 }
 
@@ -91,14 +85,12 @@ static inline void safe_close_handle(HANDLE *handle) {
 }
 
 static bool hid_check_device_info(HANDLE handle, const char *path) {
-    bool rv;
+    bool rv = false;
     HIDD_ATTRIBUTES attr;
-    PHIDP_PREPARSED_DATA data;
+    PHIDP_PREPARSED_DATA data = NULL;
     HIDP_CAPS cap;
 
-    rv = false;
     attr.Size = sizeof(HIDD_ATTRIBUTES);
-    data = NULL;
 
     if (!HidD_GetAttributes(handle, &attr)) {
         if (path != NULL)
@@ -243,12 +235,11 @@ bool privileges_restore(void) {
 struct device_info *device_enumerate(void) {
     GUID hid_guid;
     ULONG len;
-    wchar_t *di_list;
-    struct device_info *root;
-    struct device_info *end;
+    wchar_t *di_list = NULL;
+    struct device_info *root = NULL;
+    struct device_info *end = NULL;
 
     HidD_GetHidGuid(&hid_guid);
-    di_list = NULL;
 
     while (true) {
         CONFIGRET cr;
@@ -275,8 +266,6 @@ struct device_info *device_enumerate(void) {
 
         break;
     }
-
-    root = end = NULL;
 
     for (const wchar_t *di = di_list; *di != '\0'; di += wcslen(di) + 1) {
         HANDLE handle;
@@ -318,7 +307,6 @@ struct device_info *device_enumerate(void) {
     }
 
     free(di_list);
-
     return root;
 
 err_0:

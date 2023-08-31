@@ -23,6 +23,7 @@
 
 #if defined(__MINGW32__)
 #define WINVER _WIN32_WINNT_WIN7
+#define _POSIX_C_SOURCE 200112L
 #endif
 
 #if defined(__MINGW32__)
@@ -125,9 +126,8 @@ static inline bool inrange(long n, long l, long h) {
 }
 
 static inline size_t digspn(const char *s) {
-    const char *e;
+    const char *e = s;
 
-    e = s;
     while (isdigit(*e))
         e++;
 
@@ -135,9 +135,8 @@ static inline size_t digspn(const char *s) {
 }
 
 static inline size_t xdigspn(const char *s) {
-    const char *e;
+    const char *e = s;
 
-    e = s;
     while (isxdigit(*e))
         e++;
 

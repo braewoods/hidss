@@ -44,10 +44,7 @@ err_0:
 }
 
 bool platform_init(void) {
-    void (*sig) (int);
-
-    sig = signal(SIGPIPE, SIG_IGN);
-    if (sig == SIG_ERR) {
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         output("%s: %s", "signal", strerror(errno));
         return false;
     }
@@ -65,10 +62,7 @@ void platform_fini(void) {
 }
 
 bool privileges_discard(void) {
-    int res;
-
-    res = seteuid(initial_uid);
-    if (res == -1) {
+    if (seteuid(initial_uid) == -1) {
         output("%s: %s", "seteuid", strerror(errno));
         return false;
     }
@@ -77,10 +71,7 @@ bool privileges_discard(void) {
 }
 
 bool privileges_restore(void) {
-    int res;
-
-    res = seteuid(initial_euid);
-    if (res == -1) {
+    if (seteuid(initial_euid) == -1) {
         output("%s: %s", "seteuid", strerror(errno));
         return false;
     }

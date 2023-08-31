@@ -64,11 +64,8 @@ static void ymodem_write_crc_to_block(uint8_t *buf, size_t size) {
         0xef1f, 0xff3e, 0xcf5d, 0xdf7c, 0xaf9b, 0xbfba, 0x8fd9, 0x9ff8,
         0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
     };
-    uint8_t *pos;
-    uint16_t crc;
-
-    pos = buf + 3;
-    crc = 0x0000;
+    uint8_t *pos = buf + 3;
+    uint16_t crc = 0x0000;
 
     for (size_t i = 0; i < size; i++) {
         crc = (table[(crc >> 8) ^ *pos++] ^ (crc << 8));
@@ -87,20 +84,14 @@ bool device_first(char device[static PATH_MAX]) {
     }
 
     strbuild(device, PATH_MAX, dis->devpath);
-
     device_enumerate_free(dis);
-
     return true;
 }
 
 void device_enumerate_free(struct device_info *di) {
     while (di != NULL) {
-        struct device_info *next;
-
-        next = di->next;
-
+        struct device_info *next = di->next;
         free(di);
-
         di = next;
     }
 }
@@ -113,11 +104,8 @@ bool device_send_widget(struct device *dev, const uint8_t *keys, const uint16_t 
     // key is widget id from current theme
     // rest is null padding
     uint8_t buf[REPORT_BUFFER_SIZE];
-    uint8_t *pos;
-    uint8_t *end;
-
-    pos = buf;
-    end = buf + sizeof(buf);
+    uint8_t *pos = buf;
+    uint8_t *end = buf + sizeof(buf);
 
     *pos++ = REPORT_ID;
     *pos++ = 0x00;
@@ -130,7 +118,6 @@ bool device_send_widget(struct device *dev, const uint8_t *keys, const uint16_t 
     }
 
     memset(pos, 0x00, end - pos);
-
     return device_write(dev, buf);
 }
 
@@ -140,24 +127,18 @@ bool device_send_command(struct device *dev, const char *cmd, bool add_header) {
     // u8: variable length string (command)
     // rest is null padding
     uint8_t buf[REPORT_BUFFER_SIZE];
-    uint8_t *pos;
-    uint8_t *end;
-
-    pos = buf;
-    end = buf + sizeof(buf);
+    uint8_t *pos = buf;
+    uint8_t *end = buf + sizeof(buf);
 
     *pos++ = REPORT_ID;
-
     if (add_header)
         *pos++ = 0x01;
 
     while (*cmd != '\0')
         *pos++ = *cmd++;
-
     *pos++ = '\0';
 
     memset(pos, 0x00, end - pos);
-
     return device_write(dev, buf);
 }
 
@@ -189,11 +170,8 @@ bool device_send_sensor(struct device *dev, const uint8_t *keys, const uint16_t 
     // 20: sound volume (percentage)
     // rest is null padding
     uint8_t buf[REPORT_BUFFER_SIZE];
-    uint8_t *pos;
-    uint8_t *end;
-
-    pos = buf;
-    end = buf + sizeof(buf);
+    uint8_t *pos = buf;
+    uint8_t *end = buf + sizeof(buf);
 
     *pos++ = REPORT_ID;
     *pos++ = 0x02;
@@ -206,7 +184,6 @@ bool device_send_sensor(struct device *dev, const uint8_t *keys, const uint16_t 
     }
 
     memset(pos, 0x00, end - pos);
-
     return device_write(dev, buf);
 }
 
@@ -225,12 +202,9 @@ bool device_send_datetime(struct device *dev, uint8_t timeout, uint8_t brightnes
     // u8: backlight brightness (1 to 100)
     // rest is null padding
     uint8_t buf[REPORT_BUFFER_SIZE];
-    uint8_t *pos;
-    uint8_t *end;
+    uint8_t *pos = buf;
+    uint8_t *end = buf + sizeof(buf);
     struct tm tm;
-
-    pos = buf;
-    end = buf + sizeof(buf);
 
     *pos++ = REPORT_ID;
     *pos++ = 0x03;
@@ -250,7 +224,6 @@ bool device_send_datetime(struct device *dev, uint8_t timeout, uint8_t brightnes
     *pos++ = brightness;
 
     memset(pos, 0x00, end - pos);
-
     return device_write(dev, buf);
 }
 
@@ -265,14 +238,10 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
     // u8: lower byte of CRC16 for data block
     // null padding for extraneous bytes
     uint8_t block[YMODEM_128_BLOCK_SIZE];
-    uint8_t *pos;
-    uint8_t *data_end;
-    uint8_t *block_end;
+    uint8_t *pos = block;
+    uint8_t *data_end = block + 3 + 128;
+    uint8_t *block_end = block + sizeof(block);
     uint8_t buf[REPORT_BUFFER_SIZE];
-
-    pos = block;
-    data_end = block + 3 + 128;
-    block_end = block + sizeof(block);
 
     *pos++ = 0x01;
     *pos++ = 0x00;
@@ -280,18 +249,15 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
 
     while (*fn != '\0')
         *pos++ = *fn++;
-
     *pos++ = '\0';
 
     if (size > 0)
         pos += 1 + sprintf((char *) pos, "%zu", size);
 
     memset(pos, 0x00, data_end - pos);
-
     ymodem_write_crc_to_block(block, 128);
 
     pos = data_end + 2;
-
     memset(pos, 0x00, block_end - pos);
 
     for (pos = block; pos < block_end; pos += REPORT_SIZE) {
@@ -319,14 +285,10 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
     // u8: lower byte of CRC16 for data block
     // null padding for extraneous bytes
     uint8_t block[YMODEM_1024_BLOCK_SIZE];
-    uint8_t *pos;
-    uint8_t *data_end;
-    uint8_t *block_end;
+    uint8_t *pos = block;
+    uint8_t *data_end = block + 3 + 1024;
+    uint8_t *block_end = block + sizeof(block);
     uint8_t buf[REPORT_BUFFER_SIZE];
-
-    pos = block;
-    data_end = block + 3 + 1024;
-    block_end = block + sizeof(block);
 
     *pos++ = 0x02;
     *pos++ = *frame;
@@ -349,7 +311,6 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
     ymodem_write_crc_to_block(block, 1024);
 
     pos = data_end + 2;
-
     memset(pos, 0x00, block_end - pos);
 
     for (pos = block; pos < block_end; pos += REPORT_SIZE) {
@@ -369,14 +330,11 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
 }
 
 bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t size) {
-    uint8_t frame;
-    size_t total;
+    uint8_t frame = 0x01;
+    size_t total = size;
     uint8_t buf[REPORT_BUFFER_SIZE];
-    uint8_t *pos;
-    uint8_t *end;
-
-    frame = 0x01;
-    total = size;
+    uint8_t *pos = buf;
+    uint8_t *end = buf + sizeof(buf);
 
     while (size > 0) {
         size_t count;
@@ -389,18 +347,12 @@ bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t siz
             return false;
 
         count = total - size;
-
         progress = 100.0 * count / total;
-
         fprintf(stdout, "%zu\t%zu\t%.1f%%\n", count, total, progress);
     }
 
-    pos = buf;
-    end = buf + sizeof(buf);
-
     *pos++ = REPORT_ID;
     *pos++ = 0x04;
-
     memset(pos, 0x00, end - pos);
 
     if (!device_write(dev, buf))

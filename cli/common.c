@@ -23,11 +23,8 @@
 static char progname[256];
 
 static void command_parse_args(char *line, const char *args[static COMMAND_MAX_ARGS], size_t *len) {
-    size_t i;
-    char *ctx;
-
-    i = 0;
-    ctx = NULL;
+    size_t i = 0;
+    char *ctx = NULL;
 
     args[i] = strtok_r(line, COMMAND_DELIMITERS, &ctx);
     if (args[i] != NULL) {
@@ -87,17 +84,13 @@ static void command_widget(struct device *dev, const char **args, size_t len) {
     }
 
     for (i = j = 0; i < len; j++) {
-        const char *key_arg;
+        const char *key_arg = args[i++];
         long key;
-        const char *val_arg;
+        const char *val_arg = args[i++];
         long val;
-
-        key_arg = args[i++];
 
         if (!command_parse_argument(key_arg, &key, i, HIDSS_WIDGET_KEY_MIN, HIDSS_WIDGET_KEY_MAX))
             return;
-
-        val_arg = args[i++];
 
         if (!command_parse_argument(val_arg, &val, i, HIDSS_WIDGET_VALUE_MIN, HIDSS_WIDGET_VALUE_MAX))
             return;
@@ -134,17 +127,13 @@ static void command_sensor(struct device *dev, const char **args, size_t len) {
     }
 
     for (i = j = 0; i < len; j++) {
-        const char *key_arg;
+        const char *key_arg = args[i++];
         long key;
-        const char *val_arg;
+        const char *val_arg = args[i++];
         long val;
-
-        key_arg = args[i++];
 
         if (!command_parse_argument(key_arg, &key, i, HIDSS_SENSOR_KEY_MIN, HIDSS_SENSOR_KEY_MAX))
             return;
-
-        val_arg = args[i++];
 
         if (!command_parse_argument(val_arg, &val, i, HIDSS_SENSOR_VALUE_MIN, HIDSS_SENSOR_VALUE_MAX))
             return;
@@ -257,10 +246,7 @@ err_0:
 }
 
 void setprogname(const char *s) {
-    char *end;
-
-    end = memccpy(progname, s, '\0', sizeof(progname));
-    if (end == NULL)
+    if (memccpy(progname, s, '\0', sizeof(progname)) == NULL)
         progname[sizeof(progname) - 1] = '\0';
 }
 
@@ -303,31 +289,24 @@ bool strbuild_real(char * restrict dst, size_t size, char const * restrict * res
     return true;
 }
 
-bool getdatetime(struct tm *out) {
+bool getdatetime(struct tm *tm) {
     time_t ts;
-    struct tm *tm;
 
-    ts = time(NULL);
-    if (ts == (time_t) -1) {
+    if (time(&ts) == (time_t) -1) {
         output("%s: %s", "time", strerror(errno));
         return false;
     }
 
-    tm = localtime(&ts);
-    if (tm == NULL) {
+    if (localtime_r(&ts, tm) == NULL) {
         output("%s: %s", "localtime", strerror(errno));
         return false;
     }
-
-    memcpy(out, tm, sizeof(*tm));
 
     return true;
 }
 
 bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low, long high) {
-    int res;
     FILE *fin;
-    long pos;
     size_t n;
 
     fin = fopen(path, "rb");
@@ -336,25 +315,23 @@ bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low,
         goto err_0;
     }
 
-    res = fseek(fin, 0, SEEK_END);
-    if (res != 0) {
+    if (fseek(fin, 0, SEEK_END) != 0) {
         output("%s: %s: %s", "fseek", strerror(errno), path);
         goto err_1;
     }
 
-    pos = ftell(fin);
-    if (pos == -1) {
+    *size = ftell(fin);
+    if (*size == (size_t) -1) {
         output("%s: %s: %s", "ftell", strerror(errno), path);
         goto err_1;
     }
 
-    res = fseek(fin, 0, SEEK_SET);
-    if (res != 0) {
+    if (fseek(fin, 0, SEEK_SET) != 0) {
         output("%s: %s: %s", "fseek", strerror(errno), path);
         goto err_1;
     }
 
-    if (!inrange(pos, low, high)) {
+    if (!inrange(*size, low, high)) {
         output(
             "size of %s not in range of %ld to %ld",
             path,
@@ -363,8 +340,6 @@ bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low,
         );
         goto err_1;
     }
-
-    *size = pos;
 
     *data = alloc(uint8_t, *size);
     if (*data == NULL) {
@@ -379,7 +354,6 @@ bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low,
     }
 
     fclose(fin);
-
     return true;
 
 err_2:
@@ -418,11 +392,8 @@ int mode_enumerate(void) {
 
 int mode_command(struct device *dev) {
     char line[4096];
-    uint8_t timeout;
-    uint8_t brightness;
-
-    timeout = HIDSS_TIMEOUT_DEFAULT;
-    brightness = HIDSS_BRIGHTNESS_DEFAULT;
+    uint8_t timeout = HIDSS_TIMEOUT_DEFAULT;
+    uint8_t brightness = HIDSS_BRIGHTNESS_DEFAULT;
 
     while (fgets(line, sizeof(line), stdin) != NULL) {
         const char *args[COMMAND_MAX_ARGS];
