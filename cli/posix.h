@@ -26,6 +26,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <poll.h>
+#include <sys/stat.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
 

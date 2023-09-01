@@ -299,65 +299,6 @@ bool getdatetime(struct tm *tm) {
     return true;
 }
 
-bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low, long high) {
-    FILE *fin;
-    size_t n;
-
-    fin = fopen(path, "rb");
-    if (fin == NULL) {
-        output("%s: %s: %s", "fopen", strerror(errno), path);
-        goto err_0;
-    }
-
-    if (fseek(fin, 0, SEEK_END) != 0) {
-        output("%s: %s: %s", "fseek", strerror(errno), path);
-        goto err_1;
-    }
-
-    *size = ftell(fin);
-    if (*size == (size_t) -1) {
-        output("%s: %s: %s", "ftell", strerror(errno), path);
-        goto err_1;
-    }
-
-    if (fseek(fin, 0, SEEK_SET) != 0) {
-        output("%s: %s: %s", "fseek", strerror(errno), path);
-        goto err_1;
-    }
-
-    if (!inrange(*size, low, high)) {
-        output(
-            "size of %s not in range of %ld to %ld",
-            path,
-            low,
-            high
-        );
-        goto err_1;
-    }
-
-    *data = alloc(uint8_t, *size);
-    if (*data == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "uint8_t");
-        goto err_1;
-    }
-
-    n = fread(*data, 1, *size, fin);
-    if (n != *size) {
-        output("%s: %s: %s", "fread", strerror(errno), path);
-        goto err_2;
-    }
-
-    fclose(fin);
-    return true;
-
-err_2:
-    free(*data);
-err_1:
-    fclose(fin);
-err_0:
-    return false;
-}
-
 int mode_enumerate(void) {
     struct device_info *dis;
 

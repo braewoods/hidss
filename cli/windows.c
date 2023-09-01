@@ -232,6 +232,74 @@ bool privileges_restore(void) {
     return true;
 }
 
+bool file_get_contents(const char *path_cs, uint8_t **data, size_t *size, long low, long high) {
+    wchar_t path_wcs[PATH_MAX];
+    HANDLE file = INVALID_HANDLE_VALUE;
+    DWORD fs_low;
+    DWORD fs_high;
+    uint8_t *buf = NULL;
+    DWORD n;
+    bool rv = false;
+
+    if (!utf8_to_utf16(path_cs, path_wcs, sizeof(path_wcs))) {
+        output("%s: %s", "utf8_to_utf16", strerror_win32(GetLastError()));
+        goto end;
+    }
+
+    file = CreateFileW(
+        path_wcs,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+        NULL
+    );
+
+    if (file == INVALID_HANDLE_VALUE) {
+        output("%s: %s", "CreateFileW", strerror_win32(GetLastError()));
+        goto end;
+    }
+
+    fs_low = GetFileSize(file, &fs_high);
+    if (fs_low == INVALID_FILE_SIZE) {
+        output("%s: %s", "GetFileSize", strerror_win32(GetLastError()));
+        goto end;
+    }
+
+    if (fs_high != 0 || !inrange(fs_low, low, high)) {
+        output("size of %s not in range of %ld to %ld", path_cs, low, high);
+        goto end;
+    }
+
+    buf = alloc(uint8_t, fs_low);
+    if (buf == NULL) {
+        output("%s: %s: %s", "alloc", strerror(errno), "uint8_t");
+        goto end;
+    }
+
+    if (!ReadFile(file, buf, fs_low, &n, NULL)) {
+        output("%s: %s", "ReadFile", strerror_win32(GetLastError()));
+        goto end;
+    }
+
+    if (n != fs_low) {
+        output("%s: %s: %s", "ReadFile", "short read", path_cs);
+        goto end;
+    }
+
+    *data = buf;
+    *size = fs_low;
+    rv = true;
+
+end:
+    if (!rv)
+        free(buf);
+    if (file != INVALID_HANDLE_VALUE)
+        CloseHandle(file);
+    return rv;
+}
+
 struct device_info *device_enumerate(void) {
     GUID hid_guid;
     ULONG len;

@@ -58,3 +58,55 @@ bool privileges_restore(void) {
 
     return true;
 }
+
+bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low, long high) {
+    int fd = -1;
+    struct stat st;
+    uint8_t *buf = NULL;
+    bool rv = false;
+    ssize_t n;
+
+    fd = open(path, O_RDONLY | O_CLOEXEC);
+    if (fd == -1) {
+        output("%s: %s: %s", "open", strerror(errno), path);
+        goto end;
+    }
+
+    if (fstat(fd, &st) == -1) {
+        output("%s: %s: %s", "fstat", strerror(errno), path);
+        goto end;
+    }
+
+    if (!inrange(st.st_size, low, high)) {
+        output("size of %s not in range of %ld to %ld", path, low, high);
+        goto end;
+    }
+
+    buf = alloc(uint8_t, st.st_size);
+    if (buf == NULL) {
+        output("%s: %s: %s", "alloc", strerror(errno), "uint8_t");
+        goto end;
+    }
+
+    n = read(fd, buf, st.st_size);
+    if (n == -1) {
+        output("%s: %s: %s", "read", strerror(errno), path);
+        goto end;
+    }
+
+    if (n != st.st_size) {
+        output("%s: %s: %s", "read", "short read", path);
+        goto end;
+    }
+
+    *data = buf;
+    *size = st.st_size;
+    rv = true;
+
+end:
+    if (!rv)
+        free(buf);
+    if (fd != -1)
+        close(fd);
+    return rv;
+}
