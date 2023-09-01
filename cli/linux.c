@@ -19,130 +19,157 @@
 // SOFTWARE.
 
 #include "posix.h"
-#include <libudev.h>
 #include <linux/hidraw.h>
 #include <linux/input.h>
+
+#define HIDRAW_SYSFS "/sys/class/hidraw"
 
 struct device {
     int fd;
     char name[16];
 };
 
-static bool sysfs_check_device_info(const char *path) {
-    char path2[PATH_MAX];
+static ssize_t sysfs_read_field(const char *path, void *buf, size_t size, bool print) {
     int fd;
-    char data[4096];
     ssize_t n;
-    char *pos = data;
-    char *line;
-    char *id = NULL;
-    char *bustype;
-    char *vendor;
-    char *product;
-    unsigned long bustype_num;
-    unsigned long vendor_id;
-    unsigned long product_id;
 
-    strbuild(path2, sizeof(path2), path, "/device/uevent");
-
-    fd = open(path2, O_RDONLY | O_CLOEXEC);
+    fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd == -1) {
-        output("%s: %s: %s", "open", strerror(errno), path2);
-        return false;
+        if (print)
+            output("%s: %s: %s", "open", strerror(errno), path);
+        return -1;
     }
 
-    n = read(fd, data, sizeof(data));
+    n = read(fd, buf, size);
     close(fd);
     if (n == -1) {
-        output("%s: %s: %s", "read", strerror(errno), path2);
-        return false;
+        if (print)
+            output("%s: %s: %s", "read", strerror(errno), path);
+        return -1;
     }
 
-    if (n == sizeof(data)) {
-        output("%s: %s: %s", __func__, "buffer overflow", path2);
+    return n;
+}
+
+static bool sysfs_read_line(const char *base, const char *field, char *buf, size_t size) {
+    char path[PATH_MAX];
+    ssize_t n;
+
+    strbuild(path, sizeof(path), base, "/", field);
+    n = sysfs_read_field(path, buf, size, false);
+    if (n == -1)
         return false;
-    }
 
-    data[n] = '\0';
+    buf[n - 1] = '\0';
+    return true;
+}
 
-    while ((line = strsep(&pos, "\n")) != NULL) {
-        char *pos2 = line;
+static char *uevent_get_field(char *data, const char *name) {
+    char *ctx = NULL;
+    char *field = NULL;
+
+    for (
+        char *line = strtok_r(data, "\n", &ctx);
+        line != NULL;
+        line = strtok_r(NULL, "\n", &ctx)
+    ) {
+        char *ctx2 = NULL;
         char *key;
         char *val;
 
-        key = strsep(&pos2, "=");
+        key = strtok_r(line, "=", &ctx2);
         if (key == NULL)
             continue;
 
-        val = strsep(&pos2, "\n");
+        val = strtok_r(NULL, "", &ctx2);
         if (val == NULL)
             continue;
 
-        if (strcmp(key, "HID_ID") != 0)
+        if (strcmp(key, name) != 0)
             continue;
 
-        id = val;
+        field = val;
         break;
     }
 
-    if (id == NULL)
-        return false;
+    return field;
+}
 
-    pos = id;
+static bool uevent_check_hid_id(char *hid_id) {
+    char *ctx = NULL;
+    char *bustype;
+    char *vendor;
+    char *product;
+    unsigned long bustype_n;
+    unsigned long vendor_n;
+    unsigned long product_n;
 
-    bustype = strsep(&pos, ":");
+    bustype = strtok_r(hid_id, ":", &ctx);
     if (bustype == NULL)
         return false;
 
-    vendor = strsep(&pos, ":");
+    vendor = strtok_r(NULL, ":", &ctx);
     if (vendor == NULL)
         return false;
 
-    product = strsep(&pos, "");
+    product = strtok_r(NULL, "", &ctx);
     if (product == NULL)
         return false;
 
-    if (!strtoulong(bustype, &bustype_num, 16))
+    if (!strtoulong(bustype, &bustype_n, 16))
         return false;
 
-    if (!strtoulong(vendor, &vendor_id, 16))
+    if (!strtoulong(vendor, &vendor_n, 16))
         return false;
 
-    if (!strtoulong(product, &product_id, 16))
+    if (!strtoulong(product, &product_n, 16))
         return false;
 
-    if (bustype_num != BUS_USB)
+    if (bustype_n != BUS_USB)
         return false;
 
-    if (vendor_id != VENDOR_ID)
+    if (vendor_n != VENDOR_ID)
         return false;
 
-    if (product_id != PRODUCT_ID)
+    if (product_n != PRODUCT_ID)
         return false;
 
     return true;
 }
 
-static bool sysfs_check_report_descriptor(const char *path) {
-    char path2[PATH_MAX];
-    int fd;
+static bool sysfs_check_device_info(const char *name) {
+    char path[PATH_MAX];
+    char buf[4096];
+    ssize_t n;
+    char *hid_id;
+
+    strbuild(path, sizeof(path), HIDRAW_SYSFS, "/", name, "/device/uevent");
+    n = sysfs_read_field(path, buf, sizeof(buf), true);
+
+    if (n == sizeof(buf)) {
+        output("%s: %s: %s", __func__, "buffer truncation", path);
+        return false;
+    }
+
+    buf[n] = '\0';
+
+    hid_id = uevent_get_field(buf, "HID_ID");
+    if (hid_id == NULL)
+        return false;
+
+    if (!uevent_check_hid_id(hid_id))
+        return false;
+
+    return true;
+}
+
+static bool sysfs_check_report_descriptor(const char *name) {
+    char path[PATH_MAX];
     uint8_t rd[HID_MAX_DESCRIPTOR_SIZE];
     ssize_t n;
 
-    strbuild(path2, sizeof(path2), path, "/device/report_descriptor");
-
-    fd = open(path2, O_RDONLY | O_CLOEXEC);
-    if (fd == -1) {
-        output("%s: %s: %s", "open", strerror(errno), path2);
-        return false;
-    }
-
-    n = read(fd, rd, sizeof(rd));
-    close(fd);
-    if (n == -1) {
-        output("%s: %s: %s", "read", strerror(errno), path2);
-        return false;
-    }
+    strbuild(path, sizeof(path), HIDRAW_SYSFS, "/", name, "/device/report_descriptor");
+    n = sysfs_read_field(path, rd, sizeof(rd), true);
 
     if (n != REPORT_DESCRIPTOR_SIZE)
         return false;
@@ -153,14 +180,28 @@ static bool sysfs_check_report_descriptor(const char *path) {
     return true;
 }
 
-static struct device_info *sysfs_create_device_info(struct udev_device *hidraw) {
-    struct udev_device *usb;
+static struct device_info *sysfs_create_device_info(const char *name) {
+    char tmp[PATH_MAX];
+    char path[PATH_MAX];
+    char *s;
     struct device_info *di;
-    const char *str;
+    char buf[4096];
 
-    usb = udev_device_get_parent_with_subsystem_devtype(hidraw, "usb", "usb_device");
-    if (usb == NULL) {
-        output("%s: %s", "udev_device_get_parent_with_subsystem_devtype", "unknown failure");
+    strbuild(tmp, sizeof(tmp), HIDRAW_SYSFS, "/", name);
+    if (realpath(tmp, path) == NULL) {
+        output("%s: %s: %s", "realpath", strerror(errno), tmp);
+        return NULL;
+    }
+
+    while ((s = strrchr(path, '/')) != NULL) {
+        if (is_bus_path(s + 1))
+            break;
+
+        *s = '\0';
+    }
+
+    if (s == NULL) {
+        output("%s: %s: %s", __func__, "failed to find usb parent", tmp);
         return NULL;
     }
 
@@ -172,25 +213,17 @@ static struct device_info *sysfs_create_device_info(struct udev_device *hidraw) 
 
     memset(di, 0, sizeof(*di));
 
-    str = udev_device_get_sysname(hidraw);
-    if (str != NULL)
-        strbuild(di->devpath, sizeof(di->devpath), str);
+    strbuild(di->devpath, sizeof(di->devpath), name);
+    strbuild(di->buspath, sizeof(di->buspath), s + 1);
 
-    str = udev_device_get_sysname(usb);
-    if (str != NULL)
-        strbuild(di->buspath, sizeof(di->buspath), str);
+    if (sysfs_read_line(path, "manufacturer", buf, sizeof(buf)))
+        strbuild(di->vendor, sizeof(di->vendor), buf);
 
-    str = udev_device_get_sysattr_value(usb, "manufacturer");
-    if (str != NULL)
-        strbuild(di->vendor, sizeof(di->vendor), str);
+    if (sysfs_read_line(path, "product", buf, sizeof(buf)))
+        strbuild(di->product, sizeof(di->product), buf);
 
-    str = udev_device_get_sysattr_value(usb, "product");
-    if (str != NULL)
-        strbuild(di->product, sizeof(di->product), str);
-
-    str = udev_device_get_sysattr_value(usb, "serial");
-    if (str != NULL)
-        strbuild(di->serial, sizeof(di->serial), str);
+    if (sysfs_read_line(path, "serial", buf, sizeof(buf)))
+        strbuild(di->serial, sizeof(di->serial), buf);
 
     return di;
 }
@@ -251,66 +284,32 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
 }
 
 struct device_info *device_enumerate(void) {
-    struct udev *udev;
-    struct udev_enumerate *enumerator;
-    struct udev_list_entry *device_paths;
-    struct udev_list_entry *device_path;
-    struct device_info *root;
-    struct device_info *end;
+    DIR *dir;
+    struct dirent *d;
+    struct device_info *root = NULL;
+    struct device_info *end = NULL;
 
-    udev = udev_new();
-    if (udev == NULL) {
-        output("%s: %s", "udev_new", "unknown failure");
-        goto err_0;
+    dir = opendir(HIDRAW_SYSFS);
+    if (dir == NULL) {
+        output("%s: %s: %s", "opendir", strerror(errno), HIDRAW_SYSFS);
+        return NULL;
     }
 
-    enumerator = udev_enumerate_new(udev);
-    if (enumerator == NULL) {
-        output("%s: %s", "udev_enumerate_new", "unknown failure");
-        goto err_1;
-    }
-
-    if (udev_enumerate_add_match_subsystem(enumerator, "hidraw") < 0) {
-        output("%s: %s", "udev_enumerate_add_match_subsystem", "unknown failure");
-        goto err_2;
-    }
-
-    if (udev_enumerate_scan_devices(enumerator) < 0) {
-        output("%s: %s", "udev_enumerate_scan_devices", "unknown failure");
-        goto err_2;
-    }
-
-    device_paths = udev_enumerate_get_list_entry(enumerator);
-    root = end = NULL;
-
-    udev_list_entry_foreach(device_path, device_paths) {
-        const char *path;
-        struct udev_device *hidraw;
+    while ((d = readdir(dir)) != NULL) {
         struct device_info *di;
 
-        path = udev_list_entry_get_name(device_path);
-        if (path == NULL) {
-            output("%s: %s", "udev_list_entry_get_name", "unknown failure");
-            continue;
-        }
-
-        if (!sysfs_check_device_info(path))
+        if (!is_hidraw_device(d->d_name))
             continue;
 
-        if (!sysfs_check_report_descriptor(path))
+        if (!sysfs_check_device_info(d->d_name))
             continue;
 
-        hidraw = udev_device_new_from_syspath(udev, path);
-        if (hidraw == NULL) {
-            output("%s: %s", "udev_device_new_from_syspath", "unknown failure");
+        if (!sysfs_check_report_descriptor(d->d_name))
             continue;
-        }
 
-        di = sysfs_create_device_info(hidraw);
-        if (di == NULL) {
-            udev_device_unref(hidraw);
+        di = sysfs_create_device_info(d->d_name);
+        if (di == NULL)
             continue;
-        }
 
         if (root == NULL) {
             root = end = di;
@@ -318,22 +317,10 @@ struct device_info *device_enumerate(void) {
             end->next = di;
             end = di;
         }
-
-        udev_device_unref(hidraw);
     }
 
-    udev_enumerate_unref(enumerator);
-
-    udev_unref(udev);
-
+    closedir(dir);
     return root;
-
-err_2:
-    udev_enumerate_unref(enumerator);
-err_1:
-    udev_unref(udev);
-err_0:
-    return NULL;
 }
 
 struct device *device_open(const char *name) {

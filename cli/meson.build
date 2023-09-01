@@ -37,7 +37,6 @@ if target_machine.system() == 'linux'
         'posix.c',
         'linux.c',
     ]
-    hidss_dependencies += dependency('libudev')
 elif target_machine.system() == 'windows'
     hidss_sources += [
         'windows.c',

@@ -43,6 +43,31 @@ static inline bool is_hidraw_device(const char *s) {
     return (*s == '\0');
 }
 
+static inline bool is_bus_path(const char *s) {
+    size_t n;
+
+    n = digspn(s);
+    if (n == 0)
+        return false;
+
+    s += n;
+    if (*s != '-')
+        return false;
+
+    n = digspn(s += 1);
+    if (n == 0)
+        return false;
+
+    for (s += n; *s == '.'; s += n) {
+        n = digspn(s += 1);
+
+        if (n == 0)
+            return false;
+    }
+
+    return (*s == '\0');
+}
+
 static inline bool is_usb_device(const char *s) {
     size_t n;
 
