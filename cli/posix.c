@@ -23,26 +23,6 @@
 static uid_t initial_uid;
 static uid_t initial_euid;
 
-DIR *opendirat(DIR *par, const char *path) {
-    int fd;
-    DIR *dir;
-
-    fd = openat(dirfd(par), path, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
-    if (fd == -1)
-        goto err_0;
-
-    dir = fdopendir(fd);
-    if (dir == NULL)
-        goto err_1;
-
-    return dir;
-
-err_1:
-    close(fd);
-err_0:
-    return NULL;
-}
-
 bool platform_init(void) {
     if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
         output("%s: %s", "signal", strerror(errno));

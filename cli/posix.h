@@ -109,7 +109,4 @@ static inline bool is_uhid_device(const char *s) {
     s += n;
     return (*s == '\0');
 }
-
-DIR *opendirat(DIR *, const char *);
-
 #endif
