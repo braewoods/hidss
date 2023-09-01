@@ -325,48 +325,46 @@ struct device_info *device_enumerate(void) {
 
 struct device *device_open(const char *name) {
     char path[PATH_MAX];
-    int fd;
-    struct device *dev;
+    int fd = -1;
+    struct device *dev = NULL;
 
     if (!is_hidraw_device(name)) {
         output("%s: %s", "not a hidraw device", name);
-        goto err_0;
+        goto end;
     }
 
     strbuild(path, sizeof(path), "/dev/", name);
-
     fd = open(path, O_RDWR | O_CLOEXEC);
+
     if (fd == -1) {
         output("%s: %s: %s", "open", strerror(errno), name);
-        goto err_0;
+        goto end;
     }
-
-    if (!hidraw_check_device_info(fd, name))
-        goto err_1;
-
-    if (!hidraw_check_report_descriptor(fd, name))
-        goto err_1;
 
     if (flock(fd, LOCK_EX | LOCK_NB) == -1) {
         output("%s: %s: %s", "flock", strerror(errno), name);
-        goto err_1;
+        goto end;
     }
+
+    if (!hidraw_check_device_info(fd, name))
+        goto end;
+
+    if (!hidraw_check_report_descriptor(fd, name))
+        goto end;
 
     dev = alloc(struct device, 1);
     if (dev == NULL) {
         output("%s: %s: %s", "alloc", strerror(errno), "struct device");
-        goto err_1;
+        goto end;
     }
 
     dev->fd = fd;
     strbuild(dev->name, sizeof(dev->name), name);
 
+end:
+    if (dev == NULL && fd != -1)
+        close(fd);
     return dev;
-
-err_1:
-    close(fd);
-err_0:
-    return NULL;
 }
 
 void device_close(struct device *dev) {
