@@ -202,47 +202,41 @@ static bool upload_send(struct device *dev, const char *fn, const uint8_t *data,
 }
 
 static int upload_theme(struct device *dev, const char *path) {
-    uint8_t *data;
+    uint8_t *data = NULL;
     size_t size;
+    int rv = EXIT_FAILURE;
 
     if (!file_get_contents(path, &data, &size, HIDSS_THEME_MIN_SIZE, HIDSS_THEME_MAX_SIZE))
-        goto err_0;
+        goto end;
 
     if (!upload_send(dev, HIDSS_THEME_FILENAME, data, size))
-        goto err_1;
+        goto end;
 
+    rv = EXIT_SUCCESS;
+end:
     free(data);
-
-    return EXIT_SUCCESS;
-
-err_1:
-    free(data);
-err_0:
-    return EXIT_FAILURE;
+    return rv;
 }
 
 static int upload_firmware(struct device *dev, const char *path) {
-    uint8_t *data;
+    uint8_t *data = NULL;
     size_t size;
     uint8_t buf[REPORT_BUFFER_SIZE];
+    int rv = EXIT_FAILURE;
 
     if (!file_get_contents(path, &data, &size, HIDSS_FIRWMARE_MIN_SIZE, HIDSS_FIRMWARE_MAX_SIZE))
-        goto err_0;
+        goto end;
 
     if (!device_enter_boot_mode(dev, buf))
-        goto err_1;
+        goto end;
 
     if (!upload_send(dev, HIDSS_FIRMWARE_FILENAME, data, size))
-        goto err_1;
+        goto end;
 
+    rv = EXIT_SUCCESS;
+end:
     free(data);
-
-    return EXIT_SUCCESS;
-
-err_1:
-    free(data);
-err_0:
-    return EXIT_FAILURE;
+    return rv;
 }
 
 void setprogname(const char *s) {
