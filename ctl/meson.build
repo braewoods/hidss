@@ -20,28 +20,28 @@
 
 ctl = 'hidss-ctl'
 
-ctl_sources = [
+ctl_srcs = [
     'main.c',
     'common.c',
     'device.c',
 ]
 
-ctl_includes = [
-    includes
+ctl_incs = [
+    inc
 ]
 
-ctl_dependencies = []
+ctl_deps = []
 
 if target_machine.system() == 'linux'
-    ctl_sources += [
+    ctl_srcs += [
         'posix.c',
         'linux.c',
     ]
 elif target_machine.system() == 'windows'
-    ctl_sources += [
+    ctl_srcs += [
         'windows.c',
     ]
-    ctl_dependencies += [
+    ctl_deps += [
         cc.find_library('hid', static: true),
         cc.find_library('cfgmgr32', static: true),
     ]
@@ -49,9 +49,9 @@ endif
 
 executable(
     ctl,
-    sources: ctl_sources,
-    include_directories: ctl_includes,
-    dependencies: ctl_dependencies,
+    sources: ctl_srcs,
+    include_directories: ctl_incs,
+    dependencies: ctl_deps,
     install: true,
     install_mode: ['rwsr-xr-x', 0, 0],
 )

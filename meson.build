@@ -23,6 +23,7 @@ project(
     'c',
     version: '0.1',
     license: 'MIT',
+    subproject_dir: 'dep',
     default_options: [
         'warning_level=3',
         'c_std=gnu17',
@@ -31,8 +32,29 @@ project(
 )
 
 cc = meson.get_compiler('c')
+inc = include_directories('inc')
 
-includes = include_directories('inc')
+inih_proj = subproject(
+    'inih',
+    default_options: [
+        'distro_install=false',
+        'with_INIReader=false',
+        'multi-line_entries=true',
+        'utf-8_bom=false',
+        'inline_comments=false',
+        'inline_comment_prefix=;',
+        'start-of-line_comment_prefix=;#',
+        'allow_no_value=false',
+        'stop_on_first_error=false',
+        'report_line_numbers=true',
+        'call_handler_on_new_section=true',
+        'use_heap=false',
+        'max_line_length=4096',
+        'initial_malloc_size=4096',
+        'allow_realloc=false',
+    ],
+)
+inih_dep = inih_proj.get_variable('inih_dep')
 
 subdir('inc')
 subdir('ctl')
