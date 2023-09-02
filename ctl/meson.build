@@ -18,40 +18,40 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-hidss = 'hidss'
+ctl = 'hidss-ctl'
 
-hidss_sources = [
+ctl_sources = [
     'main.c',
     'common.c',
     'device.c',
 ]
 
-hidss_includes = [
+ctl_includes = [
     includes
 ]
 
-hidss_dependencies = []
+ctl_dependencies = []
 
 if target_machine.system() == 'linux'
-    hidss_sources += [
+    ctl_sources += [
         'posix.c',
         'linux.c',
     ]
 elif target_machine.system() == 'windows'
-    hidss_sources += [
+    ctl_sources += [
         'windows.c',
     ]
-    hidss_dependencies += [
+    ctl_dependencies += [
         cc.find_library('hid', static: true),
         cc.find_library('cfgmgr32', static: true),
     ]
 endif
 
 executable(
-    hidss,
-    sources: hidss_sources,
-    include_directories: hidss_includes,
-    dependencies: hidss_dependencies,
+    ctl,
+    sources: ctl_sources,
+    include_directories: ctl_includes,
+    dependencies: ctl_dependencies,
     install: true,
     install_mode: ['rwsr-xr-x', 0, 0],
 )

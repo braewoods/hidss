@@ -32,7 +32,7 @@ project(
 
 cc = meson.get_compiler('c')
 
-includes = include_directories('include')
+includes = include_directories('inc')
 
-subdir('include')
-subdir('cli')
+subdir('inc')
+subdir('ctl')
