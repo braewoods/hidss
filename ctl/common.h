@@ -42,6 +42,7 @@
 #include <signal.h>
 #include <ctype.h>
 #include <time.h>
+#include <locale.h>
 #include <limits.h>
 #include <getopt.h>
 #include <libgen.h>

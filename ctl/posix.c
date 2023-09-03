@@ -29,6 +29,11 @@ bool platform_init(void) {
         return false;
     }
 
+    if (setlocale(LC_ALL, "") == NULL) {
+        output("%s: %s", "setlocale", strerror(errno));
+        return false;
+    }
+
     tzset();
 
     initial_uid = getuid();
