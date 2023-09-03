@@ -23,12 +23,113 @@
 #include <hidsdi.h>
 #include <cfgmgr32.h>
 
+#define ENUM_TABLE_ENTRY(A) [A]=#A
+
 struct device {
     HANDLE handle;
-    OVERLAPPED read_ol;
-    OVERLAPPED write_ol;
+    OVERLAPPED read;
+    OVERLAPPED write;
     char path[256];
 };
+
+static const char *strerror_windows(DWORD err) {
+    static char msg_cs[4096];
+    DWORD res;
+    char *s;
+
+    res = FormatMessageA(
+        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        NULL,
+        err,
+        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+        msg_cs,
+        sizeof(msg_cs),
+        NULL
+    );
+
+    if (res == 0)
+        *msg_cs = '\0';
+
+    s = strchr(msg_cs, '\r');
+    if (s != NULL)
+        *s = '\0';
+
+    s = strchr(msg_cs, '\n');
+    if (s != NULL)
+        *s = '\0';
+
+    return msg_cs;
+}
+
+static inline const char *strerror_win(void) {
+    return strerror_windows(GetLastError());
+}
+
+static inline const char *strerror_cm(CONFIGRET cr) {
+    static const char *table[NUM_CR_RESULTS] = {
+        ENUM_TABLE_ENTRY(CR_SUCCESS),
+        ENUM_TABLE_ENTRY(CR_DEFAULT),
+        ENUM_TABLE_ENTRY(CR_OUT_OF_MEMORY),
+        ENUM_TABLE_ENTRY(CR_INVALID_POINTER),
+        ENUM_TABLE_ENTRY(CR_INVALID_FLAG),
+        ENUM_TABLE_ENTRY(CR_INVALID_DEVNODE),
+        ENUM_TABLE_ENTRY(CR_INVALID_RES_DES),
+        ENUM_TABLE_ENTRY(CR_INVALID_LOG_CONF),
+        ENUM_TABLE_ENTRY(CR_INVALID_ARBITRATOR),
+        ENUM_TABLE_ENTRY(CR_INVALID_NODELIST),
+        ENUM_TABLE_ENTRY(CR_DEVNODE_HAS_REQS),
+        ENUM_TABLE_ENTRY(CR_INVALID_RESOURCEID),
+        ENUM_TABLE_ENTRY(CR_DLVXD_NOT_FOUND),
+        ENUM_TABLE_ENTRY(CR_NO_SUCH_DEVNODE),
+        ENUM_TABLE_ENTRY(CR_NO_MORE_LOG_CONF),
+        ENUM_TABLE_ENTRY(CR_NO_MORE_RES_DES),
+        ENUM_TABLE_ENTRY(CR_ALREADY_SUCH_DEVNODE),
+        ENUM_TABLE_ENTRY(CR_INVALID_RANGE_LIST),
+        ENUM_TABLE_ENTRY(CR_INVALID_RANGE),
+        ENUM_TABLE_ENTRY(CR_FAILURE),
+        ENUM_TABLE_ENTRY(CR_NO_SUCH_LOGICAL_DEV),
+        ENUM_TABLE_ENTRY(CR_CREATE_BLOCKED),
+        ENUM_TABLE_ENTRY(CR_NOT_SYSTEM_VM),
+        ENUM_TABLE_ENTRY(CR_REMOVE_VETOED),
+        ENUM_TABLE_ENTRY(CR_APM_VETOED),
+        ENUM_TABLE_ENTRY(CR_INVALID_LOAD_TYPE),
+        ENUM_TABLE_ENTRY(CR_BUFFER_SMALL),
+        ENUM_TABLE_ENTRY(CR_NO_ARBITRATOR),
+        ENUM_TABLE_ENTRY(CR_NO_REGISTRY_HANDLE),
+        ENUM_TABLE_ENTRY(CR_REGISTRY_ERROR),
+        ENUM_TABLE_ENTRY(CR_INVALID_DEVICE_ID),
+        ENUM_TABLE_ENTRY(CR_INVALID_DATA),
+        ENUM_TABLE_ENTRY(CR_INVALID_API),
+        ENUM_TABLE_ENTRY(CR_DEVLOADER_NOT_READY),
+        ENUM_TABLE_ENTRY(CR_NEED_RESTART),
+        ENUM_TABLE_ENTRY(CR_NO_MORE_HW_PROFILES),
+        ENUM_TABLE_ENTRY(CR_DEVICE_NOT_THERE),
+        ENUM_TABLE_ENTRY(CR_NO_SUCH_VALUE),
+        ENUM_TABLE_ENTRY(CR_WRONG_TYPE),
+        ENUM_TABLE_ENTRY(CR_INVALID_PRIORITY),
+        ENUM_TABLE_ENTRY(CR_NOT_DISABLEABLE),
+        ENUM_TABLE_ENTRY(CR_FREE_RESOURCES),
+        ENUM_TABLE_ENTRY(CR_QUERY_VETOED),
+        ENUM_TABLE_ENTRY(CR_CANT_SHARE_IRQ),
+        ENUM_TABLE_ENTRY(CR_NO_DEPENDENT),
+        ENUM_TABLE_ENTRY(CR_SAME_RESOURCES),
+        ENUM_TABLE_ENTRY(CR_NO_SUCH_REGISTRY_KEY),
+        ENUM_TABLE_ENTRY(CR_INVALID_MACHINENAME),
+        ENUM_TABLE_ENTRY(CR_REMOTE_COMM_FAILURE),
+        ENUM_TABLE_ENTRY(CR_MACHINE_UNAVAILABLE),
+        ENUM_TABLE_ENTRY(CR_NO_CM_SERVICES),
+        ENUM_TABLE_ENTRY(CR_ACCESS_DENIED),
+        ENUM_TABLE_ENTRY(CR_CALL_NOT_IMPLEMENTED),
+        ENUM_TABLE_ENTRY(CR_INVALID_PROPERTY),
+        ENUM_TABLE_ENTRY(CR_DEVICE_INTERFACE_ACTIVE),
+        ENUM_TABLE_ENTRY(CR_NO_SUCH_DEVICE_INTERFACE),
+        ENUM_TABLE_ENTRY(CR_INVALID_REFERENCE_STRING),
+        ENUM_TABLE_ENTRY(CR_INVALID_CONFLICT_LIST),
+        ENUM_TABLE_ENTRY(CR_INVALID_INDEX),
+        ENUM_TABLE_ENTRY(CR_INVALID_STRUCTURE_SIZE),
+    };
+    return table[cr];
+}
 
 static inline bool utf16_to_utf8(const wchar_t *wcs, char *cs, size_t len) {
     int res = WideCharToMultiByte(
@@ -44,47 +145,63 @@ static inline bool utf16_to_utf8(const wchar_t *wcs, char *cs, size_t len) {
     return (res != 0);
 }
 
-static inline bool utf8_to_utf16(const char *cs, wchar_t *wcs, size_t len) {
-    int res = MultiByteToWideChar(
-        CP_UTF8,
-        MB_ERR_INVALID_CHARS,
-        cs,
-        -1,
-        wcs,
-        len
-    );
-    return (res != 0);
-}
+static char *get_device_interface_list(void) {
+    GUID guid;
+    char *dil = NULL;
+    bool done = false;
 
-static const char *strerror_win32(DWORD err) {
-    DWORD res;
-    wchar_t msg_wcs[1024];
-    static char msg_cs[1024];
+    HidD_GetHidGuid(&guid);
 
-    res = FormatMessageW(
-        FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-        NULL,
-        err,
-        MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        msg_wcs,
-        sizeof(msg_wcs),
-        NULL
-    );
+    while (!done) {
+        ULONG len;
+        CONFIGRET cr;
 
-    if (res == 0 || !utf16_to_utf8(msg_wcs, msg_cs, sizeof(msg_cs)))
-        *msg_cs = '\0';
+        cr = CM_Get_Device_Interface_List_SizeA(
+            &len,
+            &guid,
+            NULL,
+            CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+        );
 
-    return msg_cs;
-}
+        if (cr != CR_SUCCESS) {
+            output("%s: %s", "CM_Get_Device_Interface_List_Size", strerror_cm(cr));
+            goto end;
+        }
 
-static inline void safe_close_handle(HANDLE *handle) {
-    if (*handle != INVALID_HANDLE_VALUE) {
-        CloseHandle(*handle);
-        *handle = INVALID_HANDLE_VALUE;
+        dil = redim(dil, char, len);
+        if (dil == NULL) {
+            output("%s: %s: %s", "alloc", strerror(errno), "char");
+            goto end;
+        }
+
+        cr = CM_Get_Device_Interface_ListA(
+            &guid,
+            NULL,
+            dil,
+            len,
+            CM_GET_DEVICE_INTERFACE_LIST_PRESENT
+        );
+
+        if (cr == CR_BUFFER_SMALL)
+            continue;
+
+        if (cr != CR_SUCCESS) {
+            output("%s: %s", "CM_Get_Device_Interface_List", strerror_cm(cr));
+            goto end;
+        }
+
+        done = true;
     }
+
+end:
+    if (!done) {
+        free(dil);
+        dil = NULL;
+    }
+    return dil;
 }
 
-static bool hid_check_device_info(HANDLE handle, const char *path) {
+static bool check_device_info(HANDLE handle, const char *path) {
     bool rv = false;
     HIDD_ATTRIBUTES attr;
     PHIDP_PREPARSED_DATA data = NULL;
@@ -94,7 +211,7 @@ static bool hid_check_device_info(HANDLE handle, const char *path) {
 
     if (!HidD_GetAttributes(handle, &attr)) {
         if (path != NULL)
-            output("%s: %s: %s", "HidD_GetAttributes", strerror_win32(GetLastError()), path);
+            output("%s: %s: %s", "HidD_GetAttributes", strerror_win(), path);
         goto end;
     }
 
@@ -112,13 +229,13 @@ static bool hid_check_device_info(HANDLE handle, const char *path) {
 
     if (!HidD_GetPreparsedData(handle, &data)) {
         if (path != NULL)
-            output("%s: %s: %s", "HidD_GetPreparsedData", strerror_win32(GetLastError()), path);
+            output("%s: %s: %s", "HidD_GetPreparsedData", strerror_win(), path);
         goto end;
     }
 
     if (!HidP_GetCaps(data, &cap)) {
         if (path != NULL)
-            output("%s: %s: %s", "HidP_GetCaps", strerror_win32(GetLastError()), path);
+            output("%s: %s: %s", "HidP_GetCaps", strerror_win(), path);
         goto end;
     }
 
@@ -159,59 +276,59 @@ end:
     return rv;
 }
 
-static struct device_info *hid_create_device_info(HANDLE handle, const wchar_t *path) {
-    struct device_info *di;
+static struct device_info *create_device_info(HANDLE handle, const char *path) {
+    struct device_info *di = NULL;
     wchar_t buf[256];
+    bool done = false;
 
     di = alloc(struct device_info, 1);
     if (di == NULL) {
         output("%s: %s: %s", "alloc", strerror(errno), "struct device_info");
-        goto err_0;
+        goto end;
     }
 
     memset(di, 0, sizeof(*di));
 
-    if (!utf16_to_utf8(path, di->devpath, sizeof(di->devpath))) {
-        output("%s: %s", "utf16_to_utf8", strerror_win32(GetLastError()));
-        goto err_1;
-    }
+    strbuild(di->devpath, sizeof(di->devpath), path);
 
     if (!HidD_GetManufacturerString(handle, buf, sizeof(buf))) {
-        output("%s: %s", "HidD_GetManufacturerString", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "HidD_GetManufacturerString", strerror_win());
+        goto end;
     }
 
     if (!utf16_to_utf8(buf, di->vendor, sizeof(di->vendor))) {
-        output("%s: %s", "utf16_to_utf8", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "WideCharToMultiByte", strerror_win());
+        goto end;
     }
 
     if (!HidD_GetProductString(handle, buf, sizeof(buf))) {
-        output("%s: %s", "HidD_GetProductString", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "HidD_GetProductString", strerror_win());
+        goto end;
     }
 
     if (!utf16_to_utf8(buf, di->product, sizeof(di->product))) {
-        output("%s: %s", "utf16_to_utf8", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "WideCharToMultiByte", strerror_win());
+        goto end;
     }
 
     if (!HidD_GetSerialNumberString(handle, buf, sizeof(buf))) {
-        output("%s: %s", "HidD_GetSerialNumberString", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "HidD_GetSerialNumberString", strerror_win());
+        goto end;
     }
 
     if (!utf16_to_utf8(buf, di->serial, sizeof(di->serial))) {
-        output("%s: %s", "utf16_to_utf8", strerror_win32(GetLastError()));
-        goto err_1;
+        output("%s: %s", "WideCharToMultiByte", strerror_win());
+        goto end;
     }
 
-    return di;
+    done = true;
 
-err_1:
-    free(di);
-err_0:
-    return NULL;
+end:
+    if (!done) {
+        free(di);
+        di = NULL;
+    }
+    return di;
 }
 
 bool platform_init(void) {
@@ -232,8 +349,7 @@ bool privileges_restore(void) {
     return true;
 }
 
-bool file_get_contents(const char *path_cs, uint8_t **data, size_t *size, long low, long high) {
-    wchar_t path_wcs[PATH_MAX];
+bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low, long high) {
     HANDLE file = INVALID_HANDLE_VALUE;
     DWORD fs_low;
     DWORD fs_high;
@@ -241,34 +357,29 @@ bool file_get_contents(const char *path_cs, uint8_t **data, size_t *size, long l
     DWORD n;
     bool rv = false;
 
-    if (!utf8_to_utf16(path_cs, path_wcs, sizeof(path_wcs))) {
-        output("%s: %s", "utf8_to_utf16", strerror_win32(GetLastError()));
-        goto end;
-    }
-
-    file = CreateFileW(
-        path_wcs,
+    file = CreateFileA(
+        path,
         GENERIC_READ,
         FILE_SHARE_READ,
         NULL,
         OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
+        FILE_ATTRIBUTE_NORMAL,
         NULL
     );
 
     if (file == INVALID_HANDLE_VALUE) {
-        output("%s: %s", "CreateFileW", strerror_win32(GetLastError()));
+        output("%s: %s: %s", "CreateFile", strerror_win(), path);
         goto end;
     }
 
     fs_low = GetFileSize(file, &fs_high);
     if (fs_low == INVALID_FILE_SIZE) {
-        output("%s: %s", "GetFileSize", strerror_win32(GetLastError()));
+        output("%s: %s: %s", "GetFileSize", strerror_win(), path);
         goto end;
     }
 
     if (fs_high != 0 || !inrange(fs_low, low, high)) {
-        output("size of %s not in range of %ld to %ld", path_cs, low, high);
+        output("size of %s not in range of %ld to %ld", path, low, high);
         goto end;
     }
 
@@ -279,12 +390,12 @@ bool file_get_contents(const char *path_cs, uint8_t **data, size_t *size, long l
     }
 
     if (!ReadFile(file, buf, fs_low, &n, NULL)) {
-        output("%s: %s", "ReadFile", strerror_win32(GetLastError()));
+        output("%s: %s: %s", "ReadFile", strerror_win(), path);
         goto end;
     }
 
     if (n != fs_low) {
-        output("%s: %s: %s", "ReadFile", "short read", path_cs);
+        output("%s: %s: %s", "ReadFile", "short read", path);
         goto end;
     }
 
@@ -301,68 +412,37 @@ end:
 }
 
 struct device_info *device_enumerate(void) {
-    GUID hid_guid;
-    ULONG len;
-    wchar_t *di_list = NULL;
+    char *dil;
     struct device_info *root = NULL;
     struct device_info *end = NULL;
 
-    HidD_GetHidGuid(&hid_guid);
+    dil = get_device_interface_list();
+    if (dil == NULL)
+        return NULL;
 
-    while (true) {
-        CONFIGRET cr;
-
-        cr = CM_Get_Device_Interface_List_SizeW(&len, &hid_guid, NULL, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
-        if (cr != CR_SUCCESS) {
-            output("%s: %s", "CM_Get_Device_Interface_List_SizeW", strerror_win32(GetLastError()));
-            goto err_0;
-        }
-
-        di_list = redim(di_list, wchar_t, len);
-        if (di_list == NULL) {
-            output("%s: %s: %s", "alloc", strerror(errno), "wchar_t");
-            goto err_0;
-        }
-
-        cr = CM_Get_Device_Interface_ListW(&hid_guid, NULL, di_list, len, CM_GET_DEVICE_INTERFACE_LIST_PRESENT);
-        if (cr != CR_SUCCESS) {
-            if (cr == CR_BUFFER_SMALL)
-                continue;
-            output("%s: %s", "CM_Get_Device_Interface_ListW", strerror_win32(GetLastError()));
-            goto err_0;
-        }
-
-        break;
-    }
-
-    for (const wchar_t *di = di_list; *di != '\0'; di += wcslen(di) + 1) {
+    for (const char *di = dil; *di != '\0'; di += 1 + strlen(di)) {
         HANDLE handle;
         struct device_info *dip;
 
-        handle = CreateFileW(
+        handle = CreateFileA(
             di,
-            GENERIC_READ,
-            FILE_SHARE_READ,
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
             NULL,
             OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL,
             NULL
         );
 
-        if (handle == INVALID_HANDLE_VALUE) {
+        if (handle == INVALID_HANDLE_VALUE)
             continue;
-        }
 
-        if (!hid_check_device_info(handle, NULL)) {
-            CloseHandle(handle);
-            continue;
-        }
+        if (!check_device_info(handle, NULL))
+            goto close_handle;
 
-        dip = hid_create_device_info(handle, di);
-        if (dip == NULL) {
-            CloseHandle(handle);
-            continue;
-        }
+        dip = create_device_info(handle, di);
+        if (dip == NULL)
+            goto close_handle;
 
         if (root == NULL) {
             root = end = dip;
@@ -371,93 +451,92 @@ struct device_info *device_enumerate(void) {
             end = dip;
         }
 
+close_handle:
         CloseHandle(handle);
     }
 
-    free(di_list);
+    free(dil);
     return root;
-
-err_0:
-    free(di_list);
-    return NULL;
 }
 
-struct device *device_open(const char *path_cs) {
-    wchar_t path_wcs[256];
-    HANDLE handle;
-    struct device *dev;
-    HANDLE read_ev;
-    HANDLE write_ev;
+struct device *device_open(const char *path) {
+    HANDLE handle = INVALID_HANDLE_VALUE;
+    HANDLE read = NULL;
+    HANDLE write = NULL;
+    struct device *dev = NULL;
+    bool done = false;
 
-    if (!utf8_to_utf16(path_cs, path_wcs, sizeof(path_wcs))) {
-        output("%s: %s", "utf8_to_utf16", strerror_win32(GetLastError()));
-        goto err_0;
-    }
-
-    handle = CreateFileW(
-        path_wcs,
+    handle = CreateFileA(
+        path,
         GENERIC_READ | GENERIC_WRITE,
         0,
         NULL,
         OPEN_EXISTING,
-        FILE_FLAG_OVERLAPPED,
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED,
         NULL
     );
 
     if (handle == INVALID_HANDLE_VALUE) {
-        output("%s: %s: %s", "CreateFileW", strerror_win32(GetLastError()), path_cs);
-        goto err_0;
+        output("%s: %s: %s", "CreateFile", strerror_win(), path);
+        goto end;
     }
 
-    if (!hid_check_device_info(handle, path_cs))
-        goto err_1;
+    if (!check_device_info(handle, path))
+        goto end;
 
-    read_ev = CreateEventW(NULL, FALSE, FALSE, NULL);
-    if (read_ev == NULL) {
-        output("%s: %s: %s", "CreateEventW", strerror_win32(GetLastError()), path_cs);
-        goto err_1;
+    read = CreateEventA(NULL, FALSE, FALSE, NULL);
+    if (read == NULL) {
+        output("%s: %s: %s", "CreateEvent", strerror_win(), path);
+        goto end;
     }
 
-    write_ev = CreateEventW(NULL, FALSE, FALSE, NULL);
-    if (write_ev == NULL) {
-        output("%s: %s: %s", "CreateEventW", strerror_win32(GetLastError()), path_cs);
-        goto err_2;
+    write = CreateEventA(NULL, FALSE, FALSE, NULL);
+    if (write == NULL) {
+        output("%s: %s: %s", "CreateEvent", strerror_win(), path);
+        goto end;
     }
 
     dev = alloc(struct device, 1);
     if (dev == NULL) {
         output("%s: %s: %s", "alloc", strerror(errno), "struct device");
-        goto err_3;
+        goto end;
     }
 
+    memset(dev, 0, sizeof(*dev));
     dev->handle = handle;
-    memset(&dev->read_ol, 0, sizeof(dev->read_ol));
-    dev->read_ol.hEvent = read_ev;
-    memset(&dev->write_ol, 0, sizeof(dev->write_ol));
-    dev->write_ol.hEvent = write_ev;
-    strbuild(dev->path, sizeof(dev->path), path_cs);
+    dev->read.hEvent = read;
+    dev->write.hEvent = write;
+    strbuild(dev->path, sizeof(dev->path), path);
 
+    done = true;
+
+end:
+    if (!done) {
+        if (handle != INVALID_HANDLE_VALUE)
+            CloseHandle(handle);
+        if (read != NULL)
+            CloseHandle(read);
+        if (write != NULL)
+            CloseHandle(write);
+        free(dev);
+    }
     return dev;
-
-err_3:
-    CloseHandle(write_ev);
-err_2:
-    CloseHandle(read_ev);
-err_1:
-    CloseHandle(handle);
-err_0:
-    return NULL;
 }
 
 void device_close(struct device *dev) {
     if (dev == NULL)
         return;
 
-    CancelIo(dev->handle);
+    if (dev->handle != INVALID_HANDLE_VALUE) {
+        CancelIo(dev->handle);
+        CloseHandle(dev->handle);
+    }
 
-    safe_close_handle(&dev->write_ol.hEvent);
-    safe_close_handle(&dev->read_ol.hEvent);
-    safe_close_handle(&dev->handle);
+    if (dev->read.hEvent != INVALID_HANDLE_VALUE)
+        CloseHandle(dev->read.hEvent);
+
+    if (dev->write.hEvent != INVALID_HANDLE_VALUE)
+        CloseHandle(dev->write.hEvent);
 
     free(dev);
 }
@@ -465,11 +544,21 @@ void device_close(struct device *dev) {
 bool device_reopen(struct device *dev, time_t delay) {
     struct device *new_dev;
 
-    CancelIo(dev->handle);
+    if (dev->handle != INVALID_HANDLE_VALUE) {
+        CancelIo(dev->handle);
+        CloseHandle(dev->handle);
+        dev->handle = INVALID_HANDLE_VALUE;
+    }
 
-    safe_close_handle(&dev->write_ol.hEvent);
-    safe_close_handle(&dev->read_ol.hEvent);
-    safe_close_handle(&dev->handle);
+    if (dev->read.hEvent != INVALID_HANDLE_VALUE) {
+        CloseHandle(dev->read.hEvent);
+        dev->read.hEvent = INVALID_HANDLE_VALUE;
+    }
+
+    if (dev->write.hEvent != INVALID_HANDLE_VALUE) {
+        CloseHandle(dev->write.hEvent);
+        dev->write.hEvent = INVALID_HANDLE_VALUE;
+    }
 
     Sleep(delay * 1000);
 
@@ -481,70 +570,78 @@ bool device_reopen(struct device *dev, time_t delay) {
 
     memcpy(dev, new_dev, sizeof(*dev));
     free(new_dev);
-    return true;
+    return false;
 }
 
 bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
-    DWORD n;
+    DWORD len;
+    bool rv = false;
 
-    WriteFile(dev->handle, buf, REPORT_BUFFER_SIZE, &n, &dev->write_ol);
+    if (WriteFile(dev->handle, buf, REPORT_BUFFER_SIZE, &len, &dev->write)) {
+        goto check_len;
+    }
 
     if (GetLastError() != ERROR_IO_PENDING) {
-        output("%s: %s: %s", "WriteFile", strerror_win32(GetLastError()), dev->path);
-        goto err;
+        output("%s: %s: %s", "WriteFile", strerror_win(), dev->path);
+        goto end;
     }
 
-    if (!GetOverlappedResult(dev->handle, &dev->write_ol, &n, TRUE)) {
-        output("%s: %s: %s", "GetOverlappedResult", strerror_win32(GetLastError()), dev->path);
-        goto err;
+    if (!GetOverlappedResult(dev->handle, &dev->write, &len, TRUE)) {
+        output("%s: %s: %s", "GetOverlappedResult", strerror_win(), dev->path);
+        goto end;
     }
 
-    if (n != REPORT_BUFFER_SIZE) {
+check_len:
+    if (len != REPORT_BUFFER_SIZE) {
         output("%s: %s: %s", "WriteFile", "short packet", dev->path);
-        goto err;
+        goto end;
     }
 
-    return true;
+    rv = true;
 
-err:
-    CancelIo(dev->handle);
-    return false;
+end:
+    if (!rv)
+        CancelIo(dev->handle);
+    return rv;
 }
 
 bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
-    DWORD n;
-    DWORD res;
+    DWORD len;
+    bool rv = false;
 
-    ReadFile(dev->handle, buf, REPORT_BUFFER_SIZE, &n, &dev->read_ol);
+    if (ReadFile(dev->handle, buf, REPORT_BUFFER_SIZE, &len, &dev->read)) {
+        goto check_len;
+    }
 
     if (GetLastError() != ERROR_IO_PENDING) {
-        output("%s: %s: %s", "ReadFile", strerror_win32(GetLastError()), dev->path);
-        goto err;
+        output("%s: %s: %s", "ReadFile", strerror_win(), dev->path);
+        goto end;
     }
 
-    res = WaitForSingleObject(dev->read_ol.hEvent, to);
-    if (res == WAIT_FAILED) {
-        output("%s: %s: %s", "WaitForSingleObject", strerror_win32(GetLastError()), dev->path);
-        goto err;
+    switch (WaitForSingleObject(dev->read.hEvent, to)) {
+        case WAIT_FAILED:
+            output("%s: %s: %s", "WaitForSingleObject", strerror_win(), dev->path);
+        case WAIT_TIMEOUT:
+            goto end;
+        case WAIT_OBJECT_0:
+            break;
     }
 
-    if (res == WAIT_TIMEOUT) {
-        goto err;
+    if (!GetOverlappedResult(dev->handle, &dev->read, &len, TRUE)) {
+        output("%s: %s: %s", "GetOverlappedResult", strerror_win(), dev->path);
+        goto end;
     }
 
-    if (!GetOverlappedResult(dev->handle, &dev->read_ol, &n, TRUE)) {
-        output("%s: %s: %s", "GetOverlappedResult", strerror_win32(GetLastError()), dev->path);
-        goto err;
-    }
-
-    if (n != REPORT_BUFFER_SIZE) {
+check_len:
+    if (len != REPORT_BUFFER_SIZE) {
         output("%s: %s: %s", "ReadFile", "short packet", dev->path);
-        goto err;
+        goto end;
     }
 
-    return true;
+    rv = true;
 
-err:
-    CancelIo(dev->handle);
-    return false;
+end:
+    if (!rv)
+        CancelIo(dev->handle);
+    return rv;
 }

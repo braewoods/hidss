@@ -22,7 +22,7 @@
 #define _COMMON_H_
 
 #if defined(__MINGW32__)
-#define WINVER _WIN32_WINNT_WIN7
+#define WINVER _WIN32_WINNT_WIN10
 #define _POSIX_C_SOURCE 200112L
 #endif
 
@@ -177,5 +177,4 @@ void device_close(struct device *);
 bool device_reopen(struct device *, time_t);
 bool device_write(struct device *, const uint8_t [static REPORT_BUFFER_SIZE]);
 bool device_read(struct device *, uint8_t [static REPORT_BUFFER_SIZE], int);
-
 #endif
