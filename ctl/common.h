@@ -24,6 +24,7 @@
 #if defined(__MINGW32__)
 #define WINVER _WIN32_WINNT_WIN10
 #define _POSIX_C_SOURCE 200112L
+#define tzset _tzset
 #endif
 
 #if defined(__MINGW32__)

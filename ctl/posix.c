@@ -34,8 +34,6 @@ bool platform_init(void) {
         return false;
     }
 
-    tzset();
-
     initial_uid = getuid();
     initial_euid = geteuid();
 

@@ -336,8 +336,6 @@ end:
 }
 
 bool platform_init(void) {
-    tzset();
-
     return true;
 }
 

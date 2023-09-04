@@ -26,6 +26,7 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
     int opt;
 
     setprogname(argv[0]);
+    tzset();
 
     if (!platform_init())
         return false;
