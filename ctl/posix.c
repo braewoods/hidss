@@ -29,11 +29,6 @@ bool platform_init(void) {
         return false;
     }
 
-    if (setlocale(LC_ALL, "") == NULL) {
-        output("%s: %s", "setlocale", strerror(errno));
-        return false;
-    }
-
     initial_uid = getuid();
     initial_euid = geteuid();
 

@@ -28,6 +28,11 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
     setprogname(argv[0]);
     tzset();
 
+    if (setlocale(LC_ALL, "") == NULL) {
+        output("%s: %s", "setlocale", strerror(errno));
+        return false;
+    }
+
     if (!platform_init())
         return false;
 
