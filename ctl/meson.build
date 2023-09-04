@@ -40,6 +40,7 @@ if target_machine.system() == 'linux'
 elif target_machine.system() == 'windows'
     ctl_srcs += [
         'windows.c',
+        win.compile_resources('windows.rc'),
     ]
     ctl_deps += [
         cc.find_library('hid', static: true),
