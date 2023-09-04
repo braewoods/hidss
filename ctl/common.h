@@ -27,10 +27,10 @@
 #define tzset _tzset
 #endif
 
-#if defined(__MINGW32__)
-#define FORMAT_PRINTF_TYPE gnu_printf
+#if defined(__clang__)
+#define FORMAT_PRINTF printf
 #else
-#define FORMAT_PRINTF_TYPE printf
+#define FORMAT_PRINTF gnu_printf
 #endif
 
 #include <stdlib.h>
@@ -147,7 +147,7 @@ static inline size_t xdigspn(const char *s) {
 
 void setprogname(const char *);
 const char *getprogname(void);
-void output(const char *, ...) __attribute__((format(FORMAT_PRINTF_TYPE, 1, 2)));
+void output(const char *, ...) __attribute__((format(FORMAT_PRINTF, 1, 2)));
 bool strbuild_real(char * restrict, size_t, char const * restrict * restrict);
 bool getdatetime(struct tm *);
 int mode_enumerate(void);
