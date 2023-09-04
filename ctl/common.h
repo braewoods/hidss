@@ -27,6 +27,7 @@
 #if defined(__MINGW32__)
 #define WINVER _WIN32_WINNT_WIN10
 #define tzset _tzset
+#define memccpy _memccpy
 #endif
 
 #if defined(__clang__)
