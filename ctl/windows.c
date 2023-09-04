@@ -25,6 +25,10 @@
 
 #define ENUM_TABLE_ENTRY(A) [A]=#A
 
+#if !defined(_UCRT)
+#error "Only UCRT toolchains are supported."
+#endif
+
 struct device {
     HANDLE handle;
     OVERLAPPED read;
