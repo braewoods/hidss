@@ -89,8 +89,9 @@ enum {
     YMODEM_128_BLOCK_SIZE = ((128 / REPORT_SIZE) + 1) * REPORT_SIZE,
     YMODEM_1024_BLOCK_SIZE = ((1024 / REPORT_SIZE) + 1) * REPORT_SIZE,
     DEV_PATH_MAX = 256,
-    BUS_PATH_MAX = 64,
+    BUS_PATH_MAX = 128,
     USB_STRING_MAX = 256,
+    BUS_PORT_MAX = 16,
 };
 
 struct main_state {
@@ -156,6 +157,7 @@ void setprogname(const char *);
 const char *getprogname(void);
 void output(const char *, ...) __attribute__((format(FORMAT_PRINTF, 1, 2)));
 bool strbuild_real(char * restrict, size_t, char const * restrict * restrict);
+void format_bus_path(char [static BUS_PATH_MAX], uint8_t, const uint8_t [static BUS_PORT_MAX], size_t);
 bool getdatetime(struct tm *);
 int mode_enumerate(void);
 int mode_command(struct device *);
