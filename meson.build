@@ -26,7 +26,7 @@ project(
     subproject_dir: 'dep',
     default_options: [
         'warning_level=3',
-        'c_std=gnu17',
+        'c_std=gnu11',
         'buildtype=debugoptimized',
     ],
 )
@@ -40,7 +40,7 @@ inih_proj = subproject(
     default_options: [
         'distro_install=false',
         'with_INIReader=false',
-        'multi-line_entries=true',
+        'multi-line_entries=false',
         'utf-8_bom=false',
         'inline_comments=false',
         'inline_comment_prefix=;',
