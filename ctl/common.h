@@ -77,6 +77,7 @@ enum {
 };
 
 enum {
+    PROGNAME_MAX = 256,
     VENDOR_ID = 0x0483,
     PRODUCT_ID = 0x0065,
     USAGE_PAGE_ID = 0xff00,
@@ -87,6 +88,9 @@ enum {
     COMMAND_MAX_ARGS = 64,
     YMODEM_128_BLOCK_SIZE = ((128 / REPORT_SIZE) + 1) * REPORT_SIZE,
     YMODEM_1024_BLOCK_SIZE = ((1024 / REPORT_SIZE) + 1) * REPORT_SIZE,
+    DEV_PATH_MAX = 256,
+    BUS_PATH_MAX = 64,
+    USB_STRING_MAX = 256,
 };
 
 struct main_state {
@@ -99,11 +103,11 @@ struct main_state {
 
 struct device_info {
     struct device_info *next;
-    char devpath[256];
-    char buspath[256];
-    char vendor[256];
-    char product[256];
-    char serial[256];
+    char devpath[DEV_PATH_MAX];
+    char buspath[BUS_PATH_MAX];
+    char vendor[USB_STRING_MAX];
+    char product[USB_STRING_MAX];
+    char serial[USB_STRING_MAX];
 };
 
 struct device;

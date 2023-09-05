@@ -33,7 +33,7 @@ struct device {
     HANDLE handle;
     OVERLAPPED read;
     OVERLAPPED write;
-    char path[256];
+    char path[DEV_PATH_MAX];
 };
 
 static const char *strerror_windows(DWORD err) {
@@ -282,7 +282,7 @@ end:
 
 static struct device_info *create_device_info(HANDLE handle, const char *path) {
     struct device_info *di = NULL;
-    wchar_t buf[256];
+    wchar_t buf[USB_STRING_MAX];
     bool done = false;
 
     di = alloc(struct device_info, 1);

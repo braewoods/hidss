@@ -20,7 +20,7 @@
 
 #include "common.h"
 
-static char progname[256];
+static char progname[PROGNAME_MAX];
 
 static void command_parse_args(char *line, const char *args[static COMMAND_MAX_ARGS], size_t *len) {
     size_t i = 0;
