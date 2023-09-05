@@ -95,10 +95,10 @@ enum {
 };
 
 struct main_state {
-    int mode;
-    char upload_path[PATH_MAX];
-    char device_path[PATH_MAX];
     int exit_code;
+    int mode;
+    const char *upload_path;
+    const char *device_path;
     struct device *device;
 };
 

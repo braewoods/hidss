@@ -22,7 +22,6 @@
 
 static bool parse_args(int argc, char **argv, struct main_state *ms) {
     int mode_set_count = 0;
-    bool device_path_set = false;
     int opt;
 
     setprogname(argv[0]);
@@ -51,7 +50,7 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
             case 'u':
                 ms->mode = MODE_UPLOAD;
                 mode_set_count++;
-                strbuild(ms->upload_path, sizeof(ms->upload_path), optarg);
+                ms->upload_path = optarg;
                 break;
 
             case 'm':
@@ -60,8 +59,7 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
                 break;
 
             case 'd':
-                strbuild(ms->device_path, sizeof(ms->device_path), optarg);
-                device_path_set = true;
+                ms->device_path = optarg;
                 break;
 
             case 'h':
@@ -110,7 +108,7 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
         return false;
     }
 
-    if (ms->mode == MODE_ENUMERATE && device_path_set) {
+    if (ms->mode == MODE_ENUMERATE && ms->device_path != NULL) {
         output("option 'e' cannot be used with option 'd'");
         return false;
     }
@@ -125,20 +123,24 @@ static bool parse_args(int argc, char **argv, struct main_state *ms) {
 
 int main(int argc, char **argv) {
     struct main_state ms = {
-        .mode = MODE_UNSPECIFIED,
-        .upload_path = "",
-        .device_path = "",
         .exit_code = EXIT_FAILURE,
+        .mode = MODE_UNSPECIFIED,
+        .upload_path = NULL,
+        .device_path = NULL,
         .device = NULL,
     };
+    char path[PATH_MAX];
 
     if (!parse_args(argc, argv, &ms))
         goto end;
 
     if (ms.mode != MODE_ENUMERATE) {
-        if (*ms.device_path == '\0' && !device_first(ms.device_path)) {
-            output("non-existent device path");
-            goto end;
+        if (ms.device_path == NULL) {
+            if (!device_first(path)) {
+                output("non-existent device path");
+                goto end;
+            }
+            ms.device_path = path;
         }
 
         ms.device = device_open(ms.device_path);
