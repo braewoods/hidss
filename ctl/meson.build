@@ -27,7 +27,7 @@ ctl_srcs = [
 ]
 
 ctl_incs = [
-    inc
+    inc,
 ]
 
 ctl_deps = []
