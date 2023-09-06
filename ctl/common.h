@@ -104,15 +104,6 @@ static inline bool strtolong(const char *s, long *n, int b) {
     return (errno == 0 && s != e && *e == '\0');
 }
 
-static inline bool strtoulong(const char *s, unsigned long *n, int b) {
-    char *e;
-
-    errno = 0;
-    *n = strtoul(s, &e, b);
-
-    return (errno == 0 && s != e && *e == '\0');
-}
-
 static inline bool inrange(long n, long l, long h) {
     return (n >= l && n <= h);
 }

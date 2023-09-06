@@ -100,9 +100,9 @@ static bool uevent_check_hid_id(char *hid_id) {
     char *bustype;
     char *vendor;
     char *product;
-    unsigned long bustype_n;
-    unsigned long vendor_n;
-    unsigned long product_n;
+    long bustype_n;
+    long vendor_n;
+    long product_n;
 
     bustype = strtok_r(hid_id, ":", &ctx);
     if (bustype == NULL)
@@ -116,13 +116,13 @@ static bool uevent_check_hid_id(char *hid_id) {
     if (product == NULL)
         return false;
 
-    if (!strtoulong(bustype, &bustype_n, 16))
+    if (!strtolong(bustype, &bustype_n, 16))
         return false;
 
-    if (!strtoulong(vendor, &vendor_n, 16))
+    if (!strtolong(vendor, &vendor_n, 16))
         return false;
 
-    if (!strtoulong(product, &product_n, 16))
+    if (!strtolong(product, &product_n, 16))
         return false;
 
     if (bustype_n != BUS_USB)
