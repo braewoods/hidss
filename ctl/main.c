@@ -20,6 +20,22 @@
 
 #include "common.h"
 
+enum {
+    MODE_UNSPECIFIED,
+    MODE_ENUMERATE,
+    MODE_COMMAND,
+    MODE_UPLOAD,
+    MODE_MODEL,
+};
+
+struct main_state {
+    int exit_code;
+    int mode;
+    const char *upload_path;
+    const char *device_path;
+    struct device *device;
+};
+
 static bool parse_args(int argc, char **argv, struct main_state *ms) {
     int mode_set_count = 0;
     int opt;

@@ -66,16 +66,6 @@
 
 #define REPORT_DESCRIPTOR_SIZE sizeof(REPORT_DESCRIPTOR)
 
-#define COMMAND_DELIMITERS " \t\n"
-
-enum {
-    MODE_UNSPECIFIED,
-    MODE_ENUMERATE,
-    MODE_COMMAND,
-    MODE_UPLOAD,
-    MODE_MODEL,
-};
-
 enum {
     PROGNAME_MAX = 256,
     VENDOR_ID = 0x0483,
@@ -92,14 +82,6 @@ enum {
     BUS_PATH_MAX = 128,
     USB_STRING_MAX = 256,
     BUS_PORT_MAX = 16,
-};
-
-struct main_state {
-    int exit_code;
-    int mode;
-    const char *upload_path;
-    const char *device_path;
-    struct device *device;
 };
 
 struct device_info {

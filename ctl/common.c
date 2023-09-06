@@ -20,6 +20,8 @@
 
 #include "common.h"
 
+#define COMMAND_DELIMITERS " \t\n"
+
 static char progname[PROGNAME_MAX];
 
 static void command_parse_args(char *line, const char *args[static COMMAND_MAX_ARGS], size_t *len) {
