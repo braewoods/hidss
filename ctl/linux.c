@@ -405,9 +405,8 @@ bool device_reopen(struct device *dev, time_t delay) {
 }
 
 bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
-    ssize_t n;
+    ssize_t n = write(dev->fd, buf, REPORT_BUFFER_SIZE);
 
-    n = write(dev->fd, buf, REPORT_BUFFER_SIZE);
     if (n == -1) {
         output("%s: %s: %s", "write", strerror(errno), dev->name);
         return false;
@@ -440,7 +439,6 @@ bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int
     }
 
     *buf = REPORT_ID;
-
     n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
     if (n == -1) {
         output("%s: %s: %s", "read", strerror(errno), dev->name);

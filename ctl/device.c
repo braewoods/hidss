@@ -76,9 +76,8 @@ static void ymodem_write_crc_to_block(uint8_t *buf, size_t size) {
 }
 
 bool device_first(char device[static PATH_MAX]) {
-    struct device_info *dis;
+    struct device_info *dis = device_enumerate();
 
-    dis = device_enumerate();
     if (dis == NULL) {
         return false;
     }

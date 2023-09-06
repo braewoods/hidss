@@ -22,6 +22,11 @@
 
 #define COMMAND_DELIMITERS " \t\n"
 
+enum {
+    PROGNAME_MAX = 256,
+    COMMAND_MAX_ARGS = 64,
+};
+
 static char progname[PROGNAME_MAX];
 
 static void command_parse_args(char *line, const char *args[static COMMAND_MAX_ARGS], size_t *len) {
@@ -286,9 +291,7 @@ bool strbuild_real(char * restrict dst, size_t size, char const * restrict * res
 }
 
 void format_bus_path(char bp[static BUS_PATH_MAX], uint8_t bus, const uint8_t ports[static BUS_PORT_MAX], size_t len) {
-    int n;
-
-    n = snprintf(bp, sizeof("000-000"), "%hhu-%hhu", bus, *ports);
+    int n = snprintf(bp, sizeof("000-000"), "%hhu-%hhu", bus, *ports);
 
     for (size_t i = 1; i < len; i++)
         n += snprintf(bp + n, sizeof(".000"), ".%hhu", ports[i]);
@@ -311,9 +314,7 @@ bool getdatetime(struct tm *tm) {
 }
 
 int mode_enumerate(void) {
-    struct device_info *dis;
-
-    dis = device_enumerate();
+    struct device_info *dis = device_enumerate();
 
     for (struct device_info *di = dis; di != NULL; di = di->next)
         fprintf(
