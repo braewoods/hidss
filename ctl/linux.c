@@ -160,7 +160,7 @@ static bool sysfs_check_device_info(const char *name) {
     return true;
 }
 
-static bool sysfs_check_report_descriptor(const char *name) {
+static bool sysfs_check_report_desc(const char *name) {
     char path[PATH_MAX];
     uint8_t rd[HID_MAX_DESCRIPTOR_SIZE];
     ssize_t n;
@@ -168,7 +168,7 @@ static bool sysfs_check_report_descriptor(const char *name) {
     strbuild(path, sizeof(path), HIDRAW_SYSFS, "/", name, "/device/report_descriptor");
     n = sysfs_read_field(path, rd, sizeof(rd), true);
 
-    if (!verify_report_descriptor(NULL, rd, n, REPORT_ID))
+    if (!verify_report_desc(NULL, rd, n, REPORT_ID))
         return false;
 
     return true;
@@ -241,7 +241,7 @@ static bool hidraw_check_device_info(int fd, const char *name) {
     return true;
 }
 
-static bool hidraw_check_report_descriptor(int fd, const char *name) {
+static bool hidraw_check_report_desc(int fd, const char *name) {
     int size;
     struct hidraw_report_descriptor rd;
 
@@ -257,7 +257,7 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
         return false;
     }
 
-    if (!verify_report_descriptor(name, rd.value, rd.size, REPORT_ID))
+    if (!verify_report_desc(name, rd.value, rd.size, REPORT_ID))
         return false;
 
     return true;
@@ -284,7 +284,7 @@ struct device_info *device_enumerate(void) {
         if (!sysfs_check_device_info(d->d_name))
             continue;
 
-        if (!sysfs_check_report_descriptor(d->d_name))
+        if (!sysfs_check_report_desc(d->d_name))
             continue;
 
         di = sysfs_create_device_info(d->d_name);
@@ -330,7 +330,7 @@ struct device *device_open(const char *name) {
     if (!hidraw_check_device_info(fd, name))
         goto end;
 
-    if (!hidraw_check_report_descriptor(fd, name))
+    if (!hidraw_check_report_desc(fd, name))
         goto end;
 
     dev = alloc(struct device, 1);

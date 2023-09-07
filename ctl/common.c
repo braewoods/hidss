@@ -318,7 +318,7 @@ bool verify_device_ids(const char *name, uint16_t vendor_id, uint16_t product_id
     return true;
 }
 
-bool verify_report_descriptor(const char *name, const void *buf, size_t size, uint8_t report_id) {
+bool verify_report_desc(const char *name, const void *buf, size_t size, uint8_t report_id) {
     static const uint8_t rd[34] = {
         0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x09,
         0x01, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x40,
