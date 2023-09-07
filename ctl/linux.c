@@ -30,24 +30,26 @@ struct device {
 };
 
 static ssize_t sysfs_read_field(const char *path, void *buf, size_t size, bool print) {
-    int fd;
-    ssize_t n;
+    int fd = -1;
+    ssize_t n = -1;
 
     fd = open(path, O_RDONLY | O_CLOEXEC);
     if (fd == -1) {
         if (print)
             output("%s: %s: %s", "open", strerror(errno), path);
-        return -1;
+        goto end;
     }
 
     n = read(fd, buf, size);
-    close(fd);
     if (n == -1) {
         if (print)
             output("%s: %s: %s", "read", strerror(errno), path);
-        return -1;
+        goto end;
     }
 
+end:
+    if (fd != -1)
+        close(fd);
     return n;
 }
 
