@@ -297,6 +297,30 @@ void format_bus_path(char bp[static BUS_PATH_MAX], uint8_t bus, const uint8_t po
         n += snprintf(bp + n, sizeof(".000"), ".%hhu", ports[i]);
 }
 
+bool verify_report_descriptor(const char *name, const void *buf, size_t size) {
+    static const uint8_t rd[34] = {
+        0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x09,
+        0x01, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x40,
+        0x75, 0x08, 0x81, 0x02, 0x09, 0x01, 0x15, 0x00,
+        0x26, 0xff, 0x00, 0x95, 0x40, 0x75, 0x08, 0x91,
+        0x02, 0xc0,
+    };
+
+    if (size != sizeof(rd)) {
+        if (name != NULL)
+            output("%s: %s", "report descriptor size mismatch", name);
+        return false;
+    }
+
+    if (memcmp(buf, rd, sizeof(rd)) != 0) {
+        if (name != NULL)
+            output("%s: %s", "report descriptor mismatch", name);
+        return false;
+    }
+
+    return true;
+}
+
 bool getdatetime(struct tm *tm) {
     time_t ts;
 

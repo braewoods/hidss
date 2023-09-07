@@ -171,10 +171,7 @@ static bool sysfs_check_report_descriptor(const char *name) {
     strbuild(path, sizeof(path), HIDRAW_SYSFS, "/", name, "/device/report_descriptor");
     n = sysfs_read_field(path, rd, sizeof(rd), true);
 
-    if (n != REPORT_DESCRIPTOR_SIZE)
-        return false;
-
-    if (memcmp(rd, REPORT_DESCRIPTOR, n) != 0)
+    if (!verify_report_descriptor(NULL, rd, n))
         return false;
 
     return true;
@@ -263,11 +260,6 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
         return false;
     }
 
-    if (size != REPORT_DESCRIPTOR_SIZE) {
-        output("%s: %s", "report descriptor size mismatch", name);
-        return false;
-    }
-
     rd.size = size;
 
     if (ioctl(fd, HIDIOCGRDESC, &rd) == 1) {
@@ -275,10 +267,8 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
         return false;
     }
 
-    if (memcmp(rd.value, REPORT_DESCRIPTOR, rd.size) != 0) {
-        output("%s: %s", "report descriptor mismatch", name);
+    if (!verify_report_descriptor(name, rd.value, rd.size))
         return false;
-    }
 
     return true;
 }

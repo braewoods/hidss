@@ -57,15 +57,6 @@
 #define redim(P,T,N) ((T*)realloc(P,sizeof(T[N])))
 #define strbuild(A,B,...) strbuild_real(A,B,(const char *[]){__VA_ARGS__,NULL})
 
-#define REPORT_DESCRIPTOR (const uint8_t []) {      \
-    0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x09, \
-    0x01, 0x15, 0x00, 0x26, 0xff, 0x00, 0x95, 0x40, \
-    0x75, 0x08, 0x81, 0x02, 0x09, 0x01, 0x15, 0x00, \
-    0x26, 0xff, 0x00, 0x95, 0x40, 0x75, 0x08, 0x91, \
-    0x02, 0xc0, }
-
-#define REPORT_DESCRIPTOR_SIZE sizeof(REPORT_DESCRIPTOR)
-
 enum {
     VENDOR_ID = 0x0483,
     PRODUCT_ID = 0x0065,
@@ -129,6 +120,7 @@ const char *getprogname(void);
 void output(const char *, ...) __attribute__((format(FORMAT_PRINTF, 1, 2)));
 bool strbuild_real(char * restrict, size_t, char const * restrict * restrict);
 void format_bus_path(char [static BUS_PATH_MAX], uint8_t, const uint8_t [static BUS_PORT_MAX], size_t);
+bool verify_report_descriptor(const char *, const void *, size_t);
 bool getdatetime(struct tm *);
 int mode_enumerate(void);
 int mode_command(struct device *);
