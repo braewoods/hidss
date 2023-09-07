@@ -128,10 +128,7 @@ static bool uevent_check_hid_id(char *hid_id) {
     if (bustype_n != BUS_USB)
         return false;
 
-    if (vendor_n != VENDOR_ID)
-        return false;
-
-    if (product_n != PRODUCT_ID)
+    if (!verify_device_ids(NULL, vendor_n, product_n))
         return false;
 
     return true;
@@ -238,15 +235,8 @@ static bool hidraw_check_device_info(int fd, const char *name) {
         return false;
     }
 
-    if (di.vendor != VENDOR_ID) {
-        output("%s: %s", "vendor id mismatch", name);
+    if (!verify_device_ids(name, di.vendor, di.product))
         return false;
-    }
-
-    if (di.product != PRODUCT_ID) {
-        output("%s: %s", "product id mismatch", name);
-        return false;
-    }
 
     return true;
 }

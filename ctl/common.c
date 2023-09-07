@@ -297,6 +297,27 @@ void format_bus_path(char bp[static BUS_PATH_MAX], uint8_t bus, const uint8_t po
         n += snprintf(bp + n, sizeof(".000"), ".%hhu", ports[i]);
 }
 
+bool verify_device_ids(const char *name, uint16_t vendor_id, uint16_t product_id) {
+    enum {
+        VENDOR_ID = 0x0483,
+        PRODUCT_ID = 0x0065,
+    };
+
+    if (vendor_id != VENDOR_ID) {
+        if (name != NULL)
+            output("%s: %s", "vendor id mismatch", name);
+        return false;
+    }
+
+    if (product_id != PRODUCT_ID) {
+        if (name != NULL)
+            output("%s: %s", "product id mismatch", name);
+        return false;
+    }
+
+    return true;
+}
+
 bool verify_report_descriptor(const char *name, const void *buf, size_t size) {
     static const uint8_t rd[34] = {
         0x06, 0x00, 0xff, 0x09, 0x01, 0xa1, 0x01, 0x09,

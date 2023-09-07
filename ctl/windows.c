@@ -219,17 +219,8 @@ static bool check_device_info(HANDLE handle, const char *path) {
         goto end;
     }
 
-    if (attr.VendorID != VENDOR_ID) {
-        if (path != NULL)
-            output("%s: %s", "vendor id mismatch", path);
+    if (!verify_device_ids(path, attr.VendorID, attr.ProductID))
         goto end;
-    }
-
-    if (attr.ProductID != PRODUCT_ID) {
-        if (path != NULL)
-            output("%s: %s", "product id mismatch", path);
-        goto end;
-    }
 
     if (!HidD_GetPreparsedData(handle, &data)) {
         if (path != NULL)
