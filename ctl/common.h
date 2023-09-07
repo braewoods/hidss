@@ -64,7 +64,7 @@ enum {
     DEV_PATH_MAX = 256,
     BUS_PATH_MAX = 128,
     USB_STRING_MAX = 256,
-    BUS_PORT_MAX = 16,
+    BUS_PORT_MAX = 32,
 };
 
 struct device_info {
