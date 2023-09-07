@@ -20,6 +20,7 @@ generator or editor.
 
 Supported Platforms:
  - Linux
+ - NetBSD
  - OpenBSD
  - Windows
 

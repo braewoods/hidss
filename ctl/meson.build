@@ -37,6 +37,11 @@ if sys == 'linux'
         'posix.c',
         'linux.c',
     ]
+elif sys == 'netbsd'
+    ctl_srcs += [
+        'posix.c',
+        'netbsd.c',
+    ]
 elif sys == 'openbsd'
     ctl_srcs += [
         'posix.c',
