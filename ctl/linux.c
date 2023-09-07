@@ -66,18 +66,17 @@ static bool sysfs_read_line(const char *base, const char *field, char *buf, size
 
 static char *uevent_get_field(char *data, const char *name) {
     char *ctx = NULL;
-    char *field = NULL;
 
     for (
-        char *line = strtok_r(data, "\n", &ctx);
-        line != NULL;
-        line = strtok_r(NULL, "\n", &ctx)
+        char *field = strtok_r(data, "\n", &ctx);
+        field != NULL;
+        field = strtok_r(NULL, "\n", &ctx)
     ) {
         char *ctx2 = NULL;
         char *key;
         char *val;
 
-        key = strtok_r(line, "=", &ctx2);
+        key = strtok_r(field, "=", &ctx2);
         if (key == NULL)
             continue;
 
@@ -88,11 +87,10 @@ static char *uevent_get_field(char *data, const char *name) {
         if (strcmp(key, name) != 0)
             continue;
 
-        field = val;
-        break;
+        return val;
     }
 
-    return field;
+    return NULL;
 }
 
 static bool uevent_check_hid_id(char *hid_id) {
