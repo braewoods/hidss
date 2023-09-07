@@ -378,9 +378,7 @@ void device_close(struct device *dev) {
     free(dev);
 }
 
-bool device_reopen(struct device *dev, time_t delay) {
-    struct timespec req;
-    struct timespec rem;
+bool device_reopen(struct device *dev, unsigned int delay) {
     struct device *new_dev;
 
     if (dev->fd != -1) {
@@ -388,11 +386,8 @@ bool device_reopen(struct device *dev, time_t delay) {
         dev->fd = -1;
     }
 
-    req.tv_sec = delay;
-    req.tv_nsec = 0;
-
-    while (nanosleep(&req, &rem) == -1)
-        req = rem;
+    while (delay != 0)
+        delay = sleep(delay);
 
     new_dev = device_open(dev->name);
     if (new_dev == NULL) {

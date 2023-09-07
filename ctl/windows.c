@@ -544,7 +544,7 @@ void device_close(struct device *dev) {
     free(dev);
 }
 
-bool device_reopen(struct device *dev, time_t delay) {
+bool device_reopen(struct device *dev, unsigned int delay) {
     struct device *new_dev;
 
     if (dev->handle != INVALID_HANDLE_VALUE) {
