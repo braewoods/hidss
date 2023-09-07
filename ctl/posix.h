@@ -69,34 +69,6 @@ static inline bool is_bus_path(const char *s) {
     return (*s == '\0');
 }
 
-static inline bool is_usb_device(const char *s) {
-    size_t n;
-
-    if (strncmp(s, "usb", 3) != 0)
-        return false;
-
-    n = digspn(s += 3);
-    if (n == 0)
-        return false;
-
-    s += n;
-    return (*s == '\0');
-}
-
-static inline bool is_uhidev_device(const char *s) {
-    size_t n;
-
-    if (strncmp(s, "uhidev", 6) != 0)
-        return false;
-
-    n = digspn(s += 6);
-    if (n == 0)
-        return false;
-
-    s += n;
-    return (*s == '\0');
-}
-
 static inline bool is_uhid_device(const char *s) {
     size_t n;
 
