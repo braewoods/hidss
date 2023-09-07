@@ -33,6 +33,7 @@ project(
 
 cc = meson.get_compiler('c')
 inc = include_directories('inc')
+sys = target_machine.system()
 win = import('windows')
 
 inih_proj = subproject(

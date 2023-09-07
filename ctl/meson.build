@@ -32,12 +32,12 @@ ctl_incs = [
 
 ctl_deps = []
 
-if target_machine.system() == 'linux'
+if sys == 'linux'
     ctl_srcs += [
         'posix.c',
         'linux.c',
     ]
-elif target_machine.system() == 'windows'
+elif sys == 'windows'
     ctl_srcs += [
         'windows.c',
         win.compile_resources('windows.rc'),

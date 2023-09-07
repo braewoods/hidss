@@ -20,6 +20,18 @@
 
 #include "posix.h"
 
+#if defined(__linux__)
+enum {
+    HID_WRITE_SKIP = 0,
+    HID_READ_SKIP = 1,
+};
+#else
+enum {
+    HID_WRITE_SKIP = 1,
+    HID_READ_SKIP = 1,
+};
+#endif
+
 static uid_t initial_uid;
 static uid_t initial_euid;
 
@@ -108,3 +120,90 @@ end:
         close(fd);
     return rv;
 }
+
+#if !defined(__APPLE__)
+void device_close(struct device *dev) {
+    if (dev == NULL)
+        return;
+
+    if (dev->fd != -1)
+        close(dev->fd);
+
+    free(dev);
+}
+
+bool device_reopen(struct device *dev, time_t delay) {
+    struct timespec req;
+    struct timespec rem;
+    struct device *new_dev;
+
+    if (dev->fd != -1) {
+        close(dev->fd);
+        dev->fd = -1;
+    }
+
+    req.tv_sec = delay;
+    req.tv_nsec = 0;
+
+    while (nanosleep(&req, &rem) == -1)
+        req = rem;
+
+    new_dev = device_open(dev->name);
+    if (new_dev == NULL) {
+        output("%s: %s", "failed to reopen device", dev->name);
+        return false;
+    }
+
+    memcpy(dev, new_dev, sizeof(*dev));
+    free(new_dev);
+    return true;
+}
+
+bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
+    ssize_t n = write(dev->fd, buf + HID_WRITE_SKIP, REPORT_BUFFER_SIZE - HID_WRITE_SKIP);
+
+    if (n == -1) {
+        output("%s: %s: %s", "write", strerror(errno), dev->name);
+        return false;
+    }
+
+    if (n != REPORT_BUFFER_SIZE - HID_WRITE_SKIP) {
+        output("%s: %s: %s", "write", "short packet", dev->name);
+        return false;
+    }
+
+    return true;
+}
+
+bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
+    int res;
+    struct pollfd fds;
+    ssize_t n;
+
+    fds.fd = dev->fd;
+    fds.events = POLLIN;
+
+    res = poll(&fds, 1, to);
+    if (res == -1) {
+        output("%s: %s: %s", "poll", strerror(errno), dev->name);
+        return false;
+    }
+
+    if (res == 0)
+        return false;
+
+    *buf = REPORT_ID;
+    n = read(dev->fd, buf + HID_READ_SKIP, REPORT_BUFFER_SIZE - HID_READ_SKIP);
+    if (n == -1) {
+        output("%s: %s: %s", "read", strerror(errno), dev->name);
+        return false;
+    }
+
+    if (n != REPORT_BUFFER_SIZE - HID_READ_SKIP) {
+        output("%s: %s: %s", "read", "short packet", dev->name);
+        return false;
+    }
+
+    return true;
+}
+#endif
