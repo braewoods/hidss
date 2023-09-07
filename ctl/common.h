@@ -115,7 +115,7 @@ void output(const char *, ...) __attribute__((format(FORMAT_PRINTF, 1, 2)));
 bool strbuild_real(char * restrict, size_t, char const * restrict * restrict);
 void format_bus_path(char [static BUS_PATH_MAX], uint8_t, const uint8_t [static BUS_PORT_MAX], size_t);
 bool verify_device_ids(const char *, uint16_t, uint16_t);
-bool verify_report_descriptor(const char *, const void *, size_t);
+bool verify_report_descriptor(const char *, const void *, size_t, uint8_t);
 bool getdatetime(struct tm *);
 int mode_enumerate(void);
 int mode_command(struct device *);

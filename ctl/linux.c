@@ -168,7 +168,7 @@ static bool sysfs_check_report_descriptor(const char *name) {
     strbuild(path, sizeof(path), HIDRAW_SYSFS, "/", name, "/device/report_descriptor");
     n = sysfs_read_field(path, rd, sizeof(rd), true);
 
-    if (!verify_report_descriptor(NULL, rd, n))
+    if (!verify_report_descriptor(NULL, rd, n, REPORT_ID))
         return false;
 
     return true;
@@ -257,7 +257,7 @@ static bool hidraw_check_report_descriptor(int fd, const char *name) {
         return false;
     }
 
-    if (!verify_report_descriptor(name, rd.value, rd.size))
+    if (!verify_report_descriptor(name, rd.value, rd.size, REPORT_ID))
         return false;
 
     return true;
