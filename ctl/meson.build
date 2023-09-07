@@ -47,6 +47,11 @@ elif sys == 'openbsd'
         'posix.c',
         'openbsd.c',
     ]
+elif sys == 'dragonfly'
+    ctl_srcs += [
+        'posix.c',
+        'dragonfly.c',
+    ]
 elif sys == 'windows'
     ctl_srcs += [
         'windows.c',
