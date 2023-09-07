@@ -30,13 +30,6 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 
-#if !defined(__APPLE__)
-struct device {
-    int fd;
-    char name[16];
-};
-#endif
-
 static inline bool is_hidraw_device(const char *s) {
     size_t n;
 
