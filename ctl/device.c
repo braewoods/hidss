@@ -20,6 +20,11 @@
 
 #include "common.h"
 
+enum {
+    YMODEM_128_BLOCK_SIZE = ((128 / REPORT_SIZE) + 1) * REPORT_SIZE,
+    YMODEM_1024_BLOCK_SIZE = ((1024 / REPORT_SIZE) + 1) * REPORT_SIZE,
+};
+
 static bool ymodem_validate_response(const uint8_t buf[static REPORT_BUFFER_SIZE], uint8_t byte) {
     if (buf[1] != 0x06 || buf[2] != byte) {
         output("%s: %s", __func__, "unexpected response");
