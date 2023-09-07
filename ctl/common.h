@@ -21,11 +21,11 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
-#define _POSIX_C_SOURCE 200809L
-#define _XOPEN_SOURCE 700
-
-#if defined(__MINGW32__)
+#if defined(__linux__)
+#define _GNU_SOURCE
+#elif defined(__MINGW32__)
 #define WINVER _WIN32_WINNT_WIN10
+#define _POSIX_C_SOURCE 200809L
 #define tzset _tzset
 #define memccpy _memccpy
 #endif

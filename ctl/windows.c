@@ -447,7 +447,8 @@ struct device_info *device_enumerate(void) {
             goto close_handle;
 
         if (root == NULL) {
-            root = end = dip;
+            root = dip;
+            end = dip;
         } else {
             end->next = dip;
             end = dip;

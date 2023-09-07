@@ -251,7 +251,7 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
     *pos++ = '\0';
 
     if (size > 0)
-        pos += 1 + sprintf((char *) pos, "%zu", size);
+        pos += 1 + snprintf((char *) pos, data_end - pos, "%zu", size);
 
     memset(pos, 0x00, data_end - pos);
     ymodem_write_crc_to_block(block, 128);

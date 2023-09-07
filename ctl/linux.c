@@ -312,7 +312,8 @@ struct device_info *device_enumerate(void) {
             continue;
 
         if (root == NULL) {
-            root = end = di;
+            root = di;
+            end = di;
         } else {
             end->next = di;
             end = di;
@@ -434,9 +435,8 @@ bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int
         return false;
     }
 
-    if (res == 0) {
+    if (res == 0)
         return false;
-    }
 
     *buf = REPORT_ID;
     n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
