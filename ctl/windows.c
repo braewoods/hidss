@@ -29,6 +29,11 @@
 #error "Only UCRT toolchains are supported."
 #endif
 
+enum {
+    USAGE_PAGE_ID = 0xff00,
+    USAGE_ID = 0x0001,
+};
+
 struct device {
     HANDLE handle;
     OVERLAPPED read;

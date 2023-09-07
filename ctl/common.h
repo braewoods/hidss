@@ -58,8 +58,6 @@
 #define strbuild(A,B,...) strbuild_real(A,B,(const char *[]){__VA_ARGS__,NULL})
 
 enum {
-    USAGE_PAGE_ID = 0xff00,
-    USAGE_ID = 0x0001,
     REPORT_ID = 0,
     REPORT_SIZE = 64,
     REPORT_BUFFER_SIZE = REPORT_SIZE + 1,
