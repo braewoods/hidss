@@ -290,7 +290,7 @@ bool strbuild_real(char * restrict dst, size_t size, char const * restrict * res
     return true;
 }
 
-void format_bus_path(char bp[static BUS_PATH_MAX], uint8_t bus, const uint8_t ports[static BUS_PORT_MAX], size_t len) {
+void format_bus_path(char bp[static BUS_PATH_MAX], uint8_t bus, const uint8_t *ports, size_t len) {
     int n = snprintf(bp, sizeof("000-000"), "%hhu-%hhu", bus, *ports);
 
     for (size_t i = 1; i < len; i++)
