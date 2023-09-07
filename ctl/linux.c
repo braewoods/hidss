@@ -276,18 +276,19 @@ struct device_info *device_enumerate(void) {
     }
 
     while ((d = readdir(dir)) != NULL) {
+        const char *name = d->d_name;
         struct device_info *di;
 
-        if (!is_hidraw_device(d->d_name))
+        if (!is_hidraw_device(name))
             continue;
 
-        if (!sysfs_check_device_info(d->d_name))
+        if (!sysfs_check_device_info(name))
             continue;
 
-        if (!sysfs_check_report_desc(d->d_name))
+        if (!sysfs_check_report_desc(name))
             continue;
 
-        di = sysfs_create_device_info(d->d_name);
+        di = sysfs_create_device_info(name);
         if (di == NULL)
             continue;
 
