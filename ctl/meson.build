@@ -32,35 +32,10 @@ ctl_incs = [
 
 ctl_deps = []
 
-if sys == 'linux'
+if sys in ['linux', 'netbsd', 'openbsd', 'freebsd', 'dragonfly']
     ctl_srcs += [
         'posix.c',
         'uhidraw.c',
-        'linux.c',
-    ]
-elif sys == 'netbsd'
-    ctl_srcs += [
-        'posix.c',
-        'uhidraw.c',
-        'netbsd.c',
-    ]
-elif sys == 'openbsd'
-    ctl_srcs += [
-        'posix.c',
-        'uhidraw.c',
-        'openbsd.c',
-    ]
-elif sys == 'freebsd'
-    ctl_srcs += [
-        'posix.c',
-        'uhidraw.c',
-        'freebsd.c',
-    ]
-elif sys == 'dragonfly'
-    ctl_srcs += [
-        'posix.c',
-        'uhidraw.c',
-        'dragonfly.c',
     ]
 elif sys == 'windows'
     ctl_srcs += [

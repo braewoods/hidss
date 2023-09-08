@@ -30,42 +30,4 @@
 #include <sys/file.h>
 #include <sys/ioctl.h>
 
-static inline bool is_bus_path(const char *s) {
-    size_t n;
-
-    n = digspn(s);
-    if (n == 0)
-        return false;
-
-    s += n;
-    if (*s != '-')
-        return false;
-
-    n = digspn(s += 1);
-    if (n == 0)
-        return false;
-
-    for (s += n; *s == '.'; s += n) {
-        n = digspn(s += 1);
-
-        if (n == 0)
-            return false;
-    }
-
-    return (*s == '\0');
-}
-
-static inline bool is_uhub_device(const char *s) {
-    size_t n;
-
-    if (strncmp(s, "uhub", 4) != 0)
-        return false;
-
-    n = digspn(s += 4);
-    if (n == 0)
-        return false;
-
-    s += n;
-    return (*s == '\0');
-}
 #endif
