@@ -100,10 +100,28 @@ static inline size_t digspn(const char *s) {
     return (e - s);
 }
 
+static inline size_t digcspn(const char *s) {
+    const char *e = s;
+
+    while (*e != '\0' && !isdigit(*e))
+        e++;
+
+    return (e - s);
+}
+
 static inline size_t xdigspn(const char *s) {
     const char *e = s;
 
     while (isxdigit(*e))
+        e++;
+
+    return (e - s);
+}
+
+static inline size_t xdigcspn(const char *s) {
+    const char *e = s;
+
+    while (*e != '\0' && !isxdigit(*e))
         e++;
 
     return (e - s);
