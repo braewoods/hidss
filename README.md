@@ -22,6 +22,7 @@ Supported Platforms:
  - Linux
  - NetBSD
  - OpenBSD
+ - FreeBSD
  - DragonFlyBSD
  - Windows
 
