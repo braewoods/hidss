@@ -18,47 +18,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#ifndef _POSIX_H_
-#define _POSIX_H_
+#ifndef _UHIDRAW_H_
+#define _UHIDRAW_H_
 
-#include "common.h"
-#include <unistd.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <poll.h>
-#include <sys/stat.h>
-#include <sys/file.h>
-#include <sys/ioctl.h>
+#include "posix.h"
 
-static inline bool is_bus_path(const char *s) {
+enum {
+    DEVNAME_MAX = 16,
+};
+
+struct device {
+    int fd;
+    int ws;
+    char name[DEVNAME_MAX];
+};
+
+static inline bool is_hidraw_device(const char *s) {
     size_t n;
 
-    n = digspn(s);
+    if (strncmp(s, "hidraw", 6) != 0)
+        return false;
+
+    n = digspn(s += 6);
     if (n == 0)
         return false;
 
     s += n;
-    if (*s != '-')
-        return false;
-
-    n = digspn(s += 1);
-    if (n == 0)
-        return false;
-
-    for (s += n; *s == '.'; s += n) {
-        n = digspn(s += 1);
-
-        if (n == 0)
-            return false;
-    }
-
     return (*s == '\0');
 }
 
-static inline bool is_uhub_device(const char *s) {
+static inline bool is_uhid_device(const char *s) {
     size_t n;
 
-    if (strncmp(s, "uhub", 4) != 0)
+    if (strncmp(s, "uhid", 4) != 0)
         return false;
 
     n = digspn(s += 4);
@@ -68,4 +60,6 @@ static inline bool is_uhub_device(const char *s) {
     s += n;
     return (*s == '\0');
 }
+
+struct device *uhidraw_create_device(int, int, const char *);
 #endif

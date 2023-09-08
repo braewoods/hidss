@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "posix.h"
+#include "uhidraw.h"
 #include <sys/sysctl.h>
 #include <dev/hid/hidraw.h>
 #include <dev/evdev/input.h>
@@ -29,12 +29,6 @@ enum {
     DEVICE_UNKNOWN = -1,
     DEVICE_HIDRAW,
     DEVICE_UHID,
-};
-
-struct device {
-    int fd;
-    int skip;
-    char name[16];
 };
 
 static int get_device_type(const char *name) {
@@ -167,17 +161,17 @@ static char *extract_field(char *str, const char *name) {
     return NULL;
 }
 
-static bool find_uhub_direct_descendant(const char *dev, char buf[static 16]) {
-    char data[16];
+static bool find_uhub_direct_descendant(const char *dev, char buf[static DEVNAME_MAX]) {
+    char data[DEVNAME_MAX];
 
     strbuild(data, sizeof(data), dev);
 
     do {
         char name[64];
-        size_t len = 16 - 1;
+        size_t len = DEVNAME_MAX - 1;
         int off;
 
-        strbuild(buf, 16, data);
+        strbuild(buf, DEVNAME_MAX, data);
 
         off = digcspn(data);
         snprintf(
@@ -200,8 +194,8 @@ static bool find_uhub_direct_descendant(const char *dev, char buf[static 16]) {
     return true;
 }
 
-static bool find_ugen(const char *dev, char buf[static 16]) {
-    char par[16];
+static bool find_ugen(const char *dev, char buf[static DEVNAME_MAX]) {
+    char par[DEVNAME_MAX];
     char name[64];
     char data[128];
     int off;
@@ -234,7 +228,7 @@ static bool find_ugen(const char *dev, char buf[static 16]) {
         return false;
     }
 
-    strbuild(buf, 16, ugen);
+    strbuild(buf, DEVNAME_MAX, ugen);
     return true;
 }
 
@@ -277,7 +271,7 @@ static bool get_ugen_bus_path(int fd, const char *name, uint8_t ports[static BUS
 }
 
 static struct device_info *create_device_info(const char *name) {
-    char ugen[16];
+    char ugen[DEVNAME_MAX];
     int fd;
     struct usb_device_info udi;
     uint8_t ports[BUS_PORT_MAX];
@@ -394,98 +388,10 @@ struct device *device_open(const char *name) {
     if (!check_report_desc(type, fd, name, true))
         goto end;
 
-    dev = alloc(struct device, 1);
-    if (dev == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device");
-        goto end;
-    }
-
-    dev->fd = fd;
-    dev->skip = type;
-    strbuild(dev->name, sizeof(dev->name), name);
+    dev = uhidraw_create_device(fd, type, name);
 
 end:
     if (dev == NULL && fd != -1)
         close(fd);
     return dev;
-}
-
-void device_close(struct device *dev) {
-    if (dev == NULL)
-        return;
-
-    if (dev->fd != -1)
-        close(dev->fd);
-
-    free(dev);
-}
-
-bool device_reopen(struct device *dev, unsigned int delay) {
-    struct device *new_dev;
-
-    if (dev->fd != -1) {
-        close(dev->fd);
-        dev->fd = -1;
-    }
-
-    while (delay != 0)
-        delay = sleep(delay);
-
-    new_dev = device_open(dev->name);
-    if (new_dev == NULL) {
-        output("%s: %s", "failed to reopen device", dev->name);
-        return false;
-    }
-
-    memcpy(dev, new_dev, sizeof(*dev));
-    free(new_dev);
-    return true;
-}
-
-bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
-    ssize_t n = write(dev->fd, buf + dev->skip, REPORT_BUFFER_SIZE - dev->skip);
-
-    if (n == -1) {
-        output("%s: %s: %s", "write", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - dev->skip) {
-        output("%s: %s: %s", "write", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
-}
-
-bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
-    int res;
-    struct pollfd fds;
-    ssize_t n;
-
-    fds.fd = dev->fd;
-    fds.events = POLLIN;
-
-    res = poll(&fds, 1, to);
-    if (res == -1) {
-        output("%s: %s: %s", "poll", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (res == 0)
-        return false;
-
-    *buf = REPORT_ID;
-    n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
-    if (n == -1) {
-        output("%s: %s: %s", "read", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - 1) {
-        output("%s: %s: %s", "read", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
 }

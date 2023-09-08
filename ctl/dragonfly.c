@@ -18,15 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "posix.h"
+#include "uhidraw.h"
 #include <sys/sysctl.h>
 #include <bus/u4b/usb_ioctl.h>
 #include <bus/u4b/usbhid.h>
-
-struct device {
-    int fd;
-    char name[16];
-};
 
 static char *extract_field(char *str, const char *name) {
     char *ctx = NULL;
@@ -57,7 +52,7 @@ static char *extract_field(char *str, const char *name) {
     return NULL;
 }
 
-static bool get_ugen(const char *name, char buf[static 16]) {
+static bool get_ugen(const char *name, char buf[static DEVNAME_MAX]) {
     char sysname[64];
     char sysdata[128];
     size_t len = sizeof(sysdata) - 1;
@@ -78,7 +73,7 @@ static bool get_ugen(const char *name, char buf[static 16]) {
         return false;
     }
 
-    strbuild(buf, 16, ugen);
+    strbuild(buf, DEVNAME_MAX, ugen);
     return true;
 }
 
@@ -121,7 +116,7 @@ static bool get_ugen_bus_path(int fd, const char *name, uint8_t ports[static BUS
 }
 
 static bool get_device_info(const char *name, struct usb_device_info *udi) {
-    char ugen[16];
+    char ugen[DEVNAME_MAX];
     int fd;
     bool rv;
 
@@ -167,7 +162,7 @@ static bool check_report_desc(int fd, const char *name, bool print) {
 }
 
 static struct device_info *create_device_info(const char *name) {
-    char ugen[16];
+    char ugen[DEVNAME_MAX];
     int fd;
     struct usb_device_info udi;
     uint8_t ports[BUS_PORT_MAX];
@@ -280,97 +275,10 @@ struct device *device_open(const char *name) {
     if (!check_report_desc(fd, name, true))
         goto end;
 
-    dev = alloc(struct device, 1);
-    if (dev == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device");
-        goto end;
-    }
-
-    dev->fd = fd;
-    strbuild(dev->name, sizeof(dev->name), name);
+    dev = uhidraw_create_device(fd, 1, name);
 
 end:
     if (dev == NULL && fd != -1)
         close(fd);
     return dev;
-}
-
-void device_close(struct device *dev) {
-    if (dev == NULL)
-        return;
-
-    if (dev->fd != -1)
-        close(dev->fd);
-
-    free(dev);
-}
-
-bool device_reopen(struct device *dev, unsigned int delay) {
-    struct device *new_dev;
-
-    if (dev->fd != -1) {
-        close(dev->fd);
-        dev->fd = -1;
-    }
-
-    while (delay != 0)
-        delay = sleep(delay);
-
-    new_dev = device_open(dev->name);
-    if (new_dev == NULL) {
-        output("%s: %s", "failed to reopen device", dev->name);
-        return false;
-    }
-
-    memcpy(dev, new_dev, sizeof(*dev));
-    free(new_dev);
-    return true;
-}
-
-bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
-    ssize_t n = write(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
-
-    if (n == -1) {
-        output("%s: %s: %s", "write", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - 1) {
-        output("%s: %s: %s", "write", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
-}
-
-bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
-    int res;
-    struct pollfd fds;
-    ssize_t n;
-
-    fds.fd = dev->fd;
-    fds.events = POLLIN;
-
-    res = poll(&fds, 1, to);
-    if (res == -1) {
-        output("%s: %s: %s", "poll", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (res == 0)
-        return false;
-
-    *buf = REPORT_ID;
-    n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
-    if (n == -1) {
-        output("%s: %s: %s", "read", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - 1) {
-        output("%s: %s: %s", "read", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
 }

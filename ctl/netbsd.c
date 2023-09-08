@@ -18,14 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "posix.h"
+#include "uhidraw.h"
 #include <dev/usb/usb.h>
 #include <dev/usb/usbhid.h>
-
-struct device {
-    int fd;
-    char name[16];
-};
 
 static size_t walk_usb_tree(int fd, uint8_t addr, uint8_t key, uint8_t ports[static BUS_PORT_MAX], size_t len) {
     struct usb_device_info udi;
@@ -230,97 +225,10 @@ struct device *device_open(const char *name) {
     if (!hid_set_raw(fd, name))
         goto end;
 
-    dev = alloc(struct device, 1);
-    if (dev == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device");
-        goto end;
-    }
-
-    dev->fd = fd;
-    strbuild(dev->name, sizeof(dev->name), name);
+    dev = uhidraw_create_device(fd, 1, name);
 
 end:
     if (dev == NULL && fd != -1)
         close(fd);
     return dev;
-}
-
-void device_close(struct device *dev) {
-    if (dev == NULL)
-        return;
-
-    if (dev->fd != -1)
-        close(dev->fd);
-
-    free(dev);
-}
-
-bool device_reopen(struct device *dev, unsigned int delay) {
-    struct device *new_dev;
-
-    if (dev->fd != -1) {
-        close(dev->fd);
-        dev->fd = -1;
-    }
-
-    while (delay != 0)
-        delay = sleep(delay);
-
-    new_dev = device_open(dev->name);
-    if (new_dev == NULL) {
-        output("%s: %s", "failed to reopen device", dev->name);
-        return false;
-    }
-
-    memcpy(dev, new_dev, sizeof(*dev));
-    free(new_dev);
-    return true;
-}
-
-bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
-    ssize_t n = write(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
-
-    if (n == -1) {
-        output("%s: %s: %s", "write", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - 1) {
-        output("%s: %s: %s", "write", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
-}
-
-bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
-    int res;
-    struct pollfd fds;
-    ssize_t n;
-
-    fds.fd = dev->fd;
-    fds.events = POLLIN;
-
-    res = poll(&fds, 1, to);
-    if (res == -1) {
-        output("%s: %s: %s", "poll", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (res == 0)
-        return false;
-
-    *buf = REPORT_ID;
-    n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
-    if (n == -1) {
-        output("%s: %s: %s", "read", strerror(errno), dev->name);
-        return false;
-    }
-
-    if (n != REPORT_BUFFER_SIZE - 1) {
-        output("%s: %s: %s", "read", "short packet", dev->name);
-        return false;
-    }
-
-    return true;
 }
