@@ -277,7 +277,7 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
             return false;
     }
 
-    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT, true))
         return false;
 
     return ymodem_validate_response(buf, (size == 0) ? 0x00 : 0x43);
@@ -330,7 +330,7 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
             return false;
     }
 
-    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT, true))
         return false;
 
     return ymodem_validate_response(buf, (*size == 0) ? 0x00 : 0x43);
@@ -365,7 +365,7 @@ bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t siz
     if (!device_write(dev, buf))
         return false;
 
-    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT, true))
         return false;
 
     return ymodem_validate_response(buf, 0x43);
@@ -380,7 +380,7 @@ bool device_enter_ymodem_mode(struct device *dev) {
     if (!device_send_command(dev, "ymodem", false))
         return false;
 
-    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT, true))
         return false;
 
     return ymodem_validate_response(buf, 0x43);
@@ -390,7 +390,7 @@ bool device_enter_boot_mode(struct device *dev, uint8_t buf[static REPORT_BUFFER
     if (!device_send_command(dev, "model", true))
         return false;
 
-    if (device_read(dev, buf, BOOT_READ_TIMEOUT))
+    if (device_read(dev, buf, BOOT_READ_TIMEOUT, false))
         return true;
 
     if (!privileges_restore())
@@ -405,5 +405,5 @@ bool device_enter_boot_mode(struct device *dev, uint8_t buf[static REPORT_BUFFER
     if (!device_send_command(dev, "model", true))
         return false;
 
-    return device_read(dev, buf, DEFAULT_READ_TIMEOUT);
+    return device_read(dev, buf, DEFAULT_READ_TIMEOUT, true);
 }

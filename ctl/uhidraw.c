@@ -853,7 +853,7 @@ bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZ
     return true;
 }
 
-bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
+bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to, bool print) {
     ssize_t n;
 
     if (to >= 0) {
@@ -869,8 +869,11 @@ bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int
             return false;
         }
 
-        if (res == 0)
+        if (res == 0) {
+            if (print)
+                output("%s: %s: %s", "poll", "timeout has elapsed", dev->name);
             return false;
+        }
     }
 
     *buf = REPORT_ID;

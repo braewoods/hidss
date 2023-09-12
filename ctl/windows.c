@@ -604,7 +604,7 @@ end:
     return rv;
 }
 
-bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
+bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to, bool print) {
     DWORD len;
     bool rv = false;
 
@@ -621,6 +621,8 @@ bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int
         case WAIT_FAILED:
             output("%s: %s: %s", "WaitForSingleObject", strerror_win(), dev->path);
         case WAIT_TIMEOUT:
+            if (print)
+                output("%s: %s: %s", "WaitForSingleObject", "timeout has elapsed", dev->path);
             goto end;
         case WAIT_OBJECT_0:
             break;

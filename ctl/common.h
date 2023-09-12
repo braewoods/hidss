@@ -162,5 +162,5 @@ struct device *device_open(const char *);
 void device_close(struct device *);
 bool device_reopen(struct device *, unsigned int);
 bool device_write(struct device *, const uint8_t [static REPORT_BUFFER_SIZE]);
-bool device_read(struct device *, uint8_t [static REPORT_BUFFER_SIZE], int);
+bool device_read(struct device *, uint8_t [static REPORT_BUFFER_SIZE], int, bool);
 #endif
