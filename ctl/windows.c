@@ -425,7 +425,7 @@ struct device_info *device_enumerate(void) {
         handle = CreateFileA(
             di,
             GENERIC_READ | GENERIC_WRITE,
-            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            0,
             NULL,
             OPEN_EXISTING,
             FILE_ATTRIBUTE_NORMAL,
@@ -617,15 +617,18 @@ bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int
         goto end;
     }
 
-    switch (WaitForSingleObject(dev->read.hEvent, to)) {
-        case WAIT_FAILED:
-            output("%s: %s: %s", "WaitForSingleObject", strerror_win(), dev->path);
-        case WAIT_TIMEOUT:
-            if (print)
-                output("%s: %s: %s", "WaitForSingleObject", "timeout has elapsed", dev->path);
-            goto end;
-        case WAIT_OBJECT_0:
-            break;
+    if (to >= 0) {
+        switch (WaitForSingleObject(dev->read.hEvent, to)) {
+            case WAIT_FAILED:
+                output("%s: %s: %s", "WaitForSingleObject", strerror_win(), dev->path);
+                goto end;
+            case WAIT_TIMEOUT:
+                if (print)
+                    output("%s: %s: %s", "WaitForSingleObject", "timeout has elapsed", dev->path);
+                goto end;
+            case WAIT_OBJECT_0:
+                break;
+        }
     }
 
     if (!GetOverlappedResult(dev->handle, &dev->read, &len, TRUE)) {
