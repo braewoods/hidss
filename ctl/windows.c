@@ -569,7 +569,7 @@ bool device_reopen(struct device *dev, unsigned int delay) {
 
     memcpy(dev, new_dev, sizeof(*dev));
     free(new_dev);
-    return false;
+    return true;
 }
 
 bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZE]) {
