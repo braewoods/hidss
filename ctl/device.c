@@ -23,6 +23,9 @@
 enum {
     YMODEM_128_BLOCK_SIZE = ((128 / REPORT_SIZE) + 1) * REPORT_SIZE,
     YMODEM_1024_BLOCK_SIZE = ((1024 / REPORT_SIZE) + 1) * REPORT_SIZE,
+    DEFAULT_READ_TIMEOUT = 5000,
+    DEFAULT_REOPEN_DELAY = 5,
+    BOOT_READ_TIMEOUT = 100,
 };
 
 static bool ymodem_validate_response(const uint8_t buf[static REPORT_BUFFER_SIZE], uint8_t byte) {
@@ -274,7 +277,7 @@ bool device_send_metadata(struct device *dev, const char *fn, size_t size) {
             return false;
     }
 
-    if (!device_read(dev, buf, -1))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
         return false;
 
     return ymodem_validate_response(buf, (size == 0) ? 0x00 : 0x43);
@@ -327,7 +330,7 @@ bool device_send_data(struct device *dev, const uint8_t **data, size_t *size, ui
             return false;
     }
 
-    if (!device_read(dev, buf, -1))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
         return false;
 
     return ymodem_validate_response(buf, (*size == 0) ? 0x00 : 0x43);
@@ -362,7 +365,7 @@ bool device_send_data_stream(struct device *dev, const uint8_t *data, size_t siz
     if (!device_write(dev, buf))
         return false;
 
-    if (!device_read(dev, buf, -1))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
         return false;
 
     return ymodem_validate_response(buf, 0x43);
@@ -377,7 +380,7 @@ bool device_enter_ymodem_mode(struct device *dev) {
     if (!device_send_command(dev, "ymodem", false))
         return false;
 
-    if (!device_read(dev, buf, -1))
+    if (!device_read(dev, buf, DEFAULT_READ_TIMEOUT))
         return false;
 
     return ymodem_validate_response(buf, 0x43);
@@ -387,13 +390,13 @@ bool device_enter_boot_mode(struct device *dev, uint8_t buf[static REPORT_BUFFER
     if (!device_send_command(dev, "model", true))
         return false;
 
-    if (device_read(dev, buf, 100))
+    if (device_read(dev, buf, BOOT_READ_TIMEOUT))
         return true;
 
     if (!privileges_restore())
         return false;
 
-    if (!device_reopen(dev, 5))
+    if (!device_reopen(dev, DEFAULT_REOPEN_DELAY))
         return false;
 
     if (!privileges_discard())
@@ -402,5 +405,5 @@ bool device_enter_boot_mode(struct device *dev, uint8_t buf[static REPORT_BUFFER
     if (!device_send_command(dev, "model", true))
         return false;
 
-    return device_read(dev, buf, -1);
+    return device_read(dev, buf, DEFAULT_READ_TIMEOUT);
 }
