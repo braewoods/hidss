@@ -69,7 +69,7 @@ static bool command_parse_argument(const char *arg, long *num, size_t i, long lo
     return true;
 }
 
-static void command_widget(struct device *dev, const char **args, size_t len) {
+static bool command_widget(struct device *dev, const char **args, size_t len) {
     uint8_t keys[HIDSS_WIDGET_FIELDS_MAX];
     uint16_t vals[HIDSS_WIDGET_FIELDS_MAX];
     size_t i;
@@ -77,17 +77,17 @@ static void command_widget(struct device *dev, const char **args, size_t len) {
 
     if (len < 2 * HIDSS_WIDGET_FIELDS_MIN) {
         output("too few arguments");
-        return;
+        return false;
     }
 
     if (len > 2 * HIDSS_WIDGET_FIELDS_MAX) {
         output("too many arguments");
-        return;
+        return false;
     }
 
     if ((len % 2) != 0) {
         output("arguments must appear in pairs");
-        return;
+        return false;
     }
 
     for (i = j = 0; i < len; j++) {
@@ -97,22 +97,23 @@ static void command_widget(struct device *dev, const char **args, size_t len) {
         long val;
 
         if (!command_parse_argument(key_arg, &key, i, HIDSS_WIDGET_KEY_MIN, HIDSS_WIDGET_KEY_MAX))
-            return;
+            return false;
 
         if (!command_parse_argument(val_arg, &val, i, HIDSS_WIDGET_VALUE_MIN, HIDSS_WIDGET_VALUE_MAX))
-            return;
+            return false;
 
         keys[j] = key;
         vals[j] = val;
     }
 
     if (!device_send_widget(dev, keys, vals, j))
-        return;
+        return false;
 
     output("ok");
+    return true;
 }
 
-static void command_sensor(struct device *dev, const char **args, size_t len) {
+static bool command_sensor(struct device *dev, const char **args, size_t len) {
     uint8_t keys[HIDSS_SENSOR_FIELDS_MAX];
     uint16_t vals[HIDSS_SENSOR_FIELDS_MAX];
     size_t i;
@@ -120,17 +121,17 @@ static void command_sensor(struct device *dev, const char **args, size_t len) {
 
     if (len < 2 * HIDSS_SENSOR_FIELDS_MIN) {
         output("too few arguments");
-        return;
+        return false;
     }
 
     if (len > 2 * HIDSS_SENSOR_FIELDS_MAX) {
         output("too many arguments");
-        return;
+        return false;
     }
 
     if ((len % 2) != 0) {
         output("arguments must appear in pairs");
-        return;
+        return false;
     }
 
     for (i = j = 0; i < len; j++) {
@@ -140,34 +141,35 @@ static void command_sensor(struct device *dev, const char **args, size_t len) {
         long val;
 
         if (!command_parse_argument(key_arg, &key, i, HIDSS_SENSOR_KEY_MIN, HIDSS_SENSOR_KEY_MAX))
-            return;
+            return false;
 
         if (!command_parse_argument(val_arg, &val, i, HIDSS_SENSOR_VALUE_MIN, HIDSS_SENSOR_VALUE_MAX))
-            return;
+            return false;
 
         keys[j] = key;
         vals[j] = val;
     }
 
     if (!device_send_sensor(dev, keys, vals, j))
-        return;
+        return false;
 
     output("ok");
+    return true;
 }
 
-static void command_datetime(struct device *dev, const char **args, size_t len, uint8_t *timeout, uint8_t *brightness) {
+static bool command_datetime(struct device *dev, const char **args, size_t len, uint8_t *timeout, uint8_t *brightness) {
     long n;
     uint8_t new_timeout;
     uint8_t new_brightness;
 
     if (len > 2) {
         output("too many arguments");
-        return;
+        return false;
     }
 
     if (len > 0) {
         if (!command_parse_argument(args[0], &n, 1, HIDSS_TIMEOUT_MIN, HIDSS_TIMEOUT_MAX))
-            return;
+            return false;
 
         new_timeout = n;
     } else {
@@ -176,7 +178,7 @@ static void command_datetime(struct device *dev, const char **args, size_t len, 
 
     if (len > 1) {
         if (!command_parse_argument(args[1], &n, 2, HIDSS_BRIGHTNESS_MIN, HIDSS_BRIGHTNESS_MAX))
-            return;
+            return false;
 
         new_brightness = n;
     } else {
@@ -184,12 +186,13 @@ static void command_datetime(struct device *dev, const char **args, size_t len, 
     }
 
     if (!device_send_datetime(dev, new_timeout, new_brightness))
-        return;
+        return false;
 
     *timeout = new_timeout;
     *brightness = new_brightness;
 
     output("ok");
+    return true;
 }
 
 static bool upload_send(struct device *dev, const char *fn, const uint8_t *data, size_t size) {
@@ -392,35 +395,42 @@ int mode_command(struct device *dev) {
     char line[4096];
     uint8_t timeout = HIDSS_TIMEOUT_DEFAULT;
     uint8_t brightness = HIDSS_BRIGHTNESS_DEFAULT;
+    bool failed = true;
 
     while (fgets(line, sizeof(line), stdin) != NULL) {
         const char *args[COMMAND_MAX_ARGS];
         size_t len;
         const char *cmd;
+        bool res;
 
         command_parse_args(line, args, &len);
 
         if (len == 0) {
             output("no command");
-            continue;
+            break;
         }
 
         cmd = args[0];
 
         if (strcmp(cmd, "widget") == 0) {
-            command_widget(dev, args + 1, len - 1);
+            res = command_widget(dev, args + 1, len - 1);
         } else if (strcmp(cmd, "sensor") == 0) {
-            command_sensor(dev, args + 1, len - 1);
+            res = command_sensor(dev, args + 1, len - 1);
         } else if (strcmp(cmd, "datetime") == 0) {
-            command_datetime(dev, args + 1, len - 1, &timeout, &brightness);
+            res = command_datetime(dev, args + 1, len - 1, &timeout, &brightness);
         } else if (strcmp(cmd, "exit") == 0) {
-            break;
+            failed = false;
+            res = false;
         } else {
             output("%s: %s", "unknown command", cmd);
+            res = false;
         }
+
+        if (!res)
+            break;
     }
 
-    return EXIT_SUCCESS;
+    return (failed ? EXIT_FAILURE : EXIT_SUCCESS);
 }
 
 int mode_upload(struct device *dev, const char *upload_path) {
