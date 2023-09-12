@@ -854,21 +854,24 @@ bool device_write(struct device *dev, const uint8_t buf[static REPORT_BUFFER_SIZ
 }
 
 bool device_read(struct device *dev, uint8_t buf[static REPORT_BUFFER_SIZE], int to) {
-    int res;
-    struct pollfd fds;
     ssize_t n;
 
-    fds.fd = dev->fd;
-    fds.events = POLLIN;
+    if (to >= 0) {
+        struct pollfd fds;
+        int res;
 
-    res = poll(&fds, 1, to);
-    if (res == -1) {
-        output("%s: %s: %s", "poll", strerror(errno), dev->name);
-        return false;
+        fds.fd = dev->fd;
+        fds.events = POLLIN;
+
+        res = poll(&fds, 1, to);
+        if (res == -1) {
+            output("%s: %s: %s", "poll", strerror(errno), dev->name);
+            return false;
+        }
+
+        if (res == 0)
+            return false;
     }
-
-    if (res == 0)
-        return false;
 
     *buf = REPORT_ID;
     n = read(dev->fd, buf + 1, REPORT_BUFFER_SIZE - 1);
