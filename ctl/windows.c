@@ -179,7 +179,7 @@ static char *get_device_interface_list(void) {
 
         dil = redim(dil, char, len);
         if (dil == NULL) {
-            output("%s: %s: %s", "alloc", strerror(errno), "char");
+            output("%s: %s: %s", "realloc", strerror(errno), "char");
             goto end;
         }
 
@@ -283,7 +283,7 @@ static struct device_info *create_device_info(HANDLE handle, const char *path) {
 
     di = alloc(struct device_info, 1);
     if (di == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device_info");
+        output("%s: %s: %s", "malloc", strerror(errno), "struct device_info");
         goto end;
     }
 
@@ -383,7 +383,7 @@ bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low,
 
     buf = alloc(uint8_t, fs_low);
     if (buf == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "uint8_t");
+        output("%s: %s: %s", "malloc", strerror(errno), "uint8_t");
         goto end;
     }
 
@@ -497,7 +497,7 @@ struct device *device_open(const char *path) {
 
     dev = alloc(struct device, 1);
     if (dev == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device");
+        output("%s: %s: %s", "malloc", strerror(errno), "struct device");
         goto end;
     }
 

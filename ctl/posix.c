@@ -82,7 +82,7 @@ bool file_get_contents(const char *path, uint8_t **data, size_t *size, long low,
 
     buf = alloc(uint8_t, st.st_size);
     if (buf == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "uint8_t");
+        output("%s: %s: %s", "malloc", strerror(errno), "uint8_t");
         goto end;
     }
 

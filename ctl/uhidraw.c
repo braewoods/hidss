@@ -672,7 +672,7 @@ static struct device_info *create_device_info(int fd, const char *name) {
     struct device_info *di = alloc(struct device_info, 1);
 
     if (di == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device_info");
+        output("%s: %s: %s", "malloc", strerror(errno), "struct device_info");
         return NULL;
     }
 
@@ -689,7 +689,7 @@ static struct device *create_device(int fd, int ws, const char *name) {
 
     dev = alloc(struct device, 1);
     if (dev == NULL) {
-        output("%s: %s: %s", "alloc", strerror(errno), "struct device");
+        output("%s: %s: %s", "malloc", strerror(errno), "struct device");
         return NULL;
     }
 
