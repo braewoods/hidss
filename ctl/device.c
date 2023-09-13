@@ -73,11 +73,10 @@ static void ymodem_write_crc_to_block(uint8_t *buf, size_t size) {
         0x6e17, 0x7e36, 0x4e55, 0x5e74, 0x2e93, 0x3eb2, 0x0ed1, 0x1ef0,
     };
     uint8_t *pos = buf + 3;
-    uint16_t crc = 0x0000;
+    uint16_t crc = 0;
 
-    for (size_t i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++)
         crc = (table[(crc >> 8) ^ *pos++] ^ (crc << 8));
-    }
 
     *pos++ = ((crc & 0xff00) >> 8);
     *pos++ = ((crc & 0x00ff) >> 0);
