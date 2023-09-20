@@ -21,6 +21,9 @@
 #ifndef _HIDSS_H_
 #define _HIDSS_H_
 
+#include <stdbool.h>
+#include <stdint.h>
+
 #define HIDSS_THEME_FILENAME "img.dat"
 #define HIDSS_FIRMWARE_FILENAME "update.bin"
 
@@ -71,6 +74,27 @@ enum {
     HIDSS_THEME_MAX_SIZE = 4194304,
     HIDSS_FIRWMARE_MIN_SIZE = 0,
     HIDSS_FIRMWARE_MAX_SIZE = 65536,
+    HIDSS_LANDSCAPE_WIDTH = 480,
+    HIDSS_LANDSCAPE_HEIGHT = 320,
+    HIDSS_PORTRAIT_WIDTH = 320,
+    HIDSS_PORTRAIT_HEIGHT = 480,
 };
 
+static inline bool hidss_screen_verify_dimensions(uint16_t width, uint16_t height) {
+    if (width == HIDSS_LANDSCAPE_WIDTH && height == HIDSS_LANDSCAPE_HEIGHT)
+        return true;
+
+    if (width == HIDSS_PORTRAIT_WIDTH && height == HIDSS_PORTRAIT_HEIGHT)
+        return true;
+
+    return false;
+}
+
+static inline bool hidss_screen_is_landscape(uint16_t width, uint16_t height) {
+    return (width > height);
+}
+
+static inline bool hidss_screen_is_portrait(uint16_t width, uint16_t height) {
+    return (width < height);
+}
 #endif
