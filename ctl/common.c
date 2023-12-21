@@ -239,16 +239,19 @@ static uint32_t crc32c(const uint8_t *pos, size_t size) {
 }
 
 static bool verify_firmware(const uint8_t *data, size_t size) {
-    static const uint32_t table[] = {
-        46496, 0x57319ea5,
-        46688, 0xf0ea1b4a,
-        46208, 0xa19a5f5c,
+    static const struct {
+        uint32_t size;
+        uint32_t crc;
+    } table[] = {
+        {46496, 0x57319ea5},
+        {46688, 0xf0ea1b4a},
+        {46208, 0xa19a5f5c},
     };
     static const size_t table_length = sizeof(table) / sizeof(*table);
     uint32_t crc = crc32c(data, size);
 
-    for (size_t i = 0; i < table_length; i += 2)
-        if (table[i] == size && table[i + 1] == crc)
+    for (size_t i = 0; i < table_length; i++)
+        if (table[i].size == size && table[i].crc == crc)
             return true;
 
     output("%s: %08x", "unsupported firmware", crc);
