@@ -27,5 +27,6 @@ Supported Platforms:
  - Windows
 
 Useful Links:
- - [Product Listing](https://aliexpress.com/item/1005005632018367.html)
+ - [3.5 Inch Screen](https://aliexpress.com/item/3256805919073615.html)
+ - [5.0 Inch Screen](https://aliexpress.com/item/3256806093089477.html)
  - [Proprietary Software](https://smartdisplay.lanzouo.com/b04jvavkb)
