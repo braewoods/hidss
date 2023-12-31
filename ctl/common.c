@@ -275,6 +275,11 @@ static bool upload_send(struct device *dev, const char *fn, const uint8_t *data,
 }
 
 static int upload_theme(struct device *dev, const char *path) {
+    // TODO: update these in refactoring for a new display
+    enum {
+        HIDSS_THEME_MIN_SIZE = 4096,
+        HIDSS_THEME_MAX_SIZE = 4194304,
+    };
     uint8_t *data = NULL;
     size_t size;
     int rv = EXIT_FAILURE;
@@ -292,6 +297,11 @@ end:
 }
 
 static int upload_firmware(struct device *dev, const char *path) {
+    // TODO: update these in refactoring for a new display
+    enum {
+        HIDSS_FIRWMARE_MIN_SIZE = 0,
+        HIDSS_FIRMWARE_MAX_SIZE = 65536,
+    };
     uint8_t *data = NULL;
     size_t size;
     uint8_t buf[REPORT_BUFFER_SIZE];
